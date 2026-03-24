@@ -1,0 +1,41 @@
+# Build artifacts
+.build/
+.resources/
+*.app/
+*.o
+*.d
+
+# Xcode
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+DerivedData/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager
+.swiftpm/
+Package.resolved
+
+# macOS
+.DS_Store
+**/.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+Sources/**/*+Preview.swift
+Sources/**/PreviewDataService.swift
+Makefile.local
+.env
