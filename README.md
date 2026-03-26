@@ -72,7 +72,13 @@ Zero telemetry, zero analytics. Your OAuth token never leaves your machine — r
 
 > **Requirements:** macOS 14 Sonoma or later + a Claude account (OAuth token retrieved automatically from Claude Code)
 
-### Install
+### Download (recommended)
+
+1. Grab the latest `ClaudeWatch.dmg` from the [Releases](https://github.com/SerhiiBoo/ClaudeWatch/releases) page
+2. Open the DMG and drag **Claude Watch** to `/Applications`
+3. On first launch, macOS will block the app because it is not notarized — see [Opening on macOS Sequoia+](#opening-on-macos-sequoia) below
+
+### Build from source
 
 ```bash
 git clone https://github.com/SerhiiBoo/ClaudeWatch.git
@@ -135,7 +141,26 @@ Open the popover → gear icon → **Settings**:
 | **Usage shows 0% after launch** | The first API poll happens within a few seconds. If it persists, check your internet connection and OAuth token. |
 | **Rate limit banner won't go away** | This is normal — the app detects HTTP 429 responses and shows a countdown. It will clear automatically once the cooldown expires. |
 | **Notifications not appearing** | Open **System Settings → Notifications → Claude Watch** and ensure notifications are enabled. |
-| **App won't open ("damaged" warning)** | Run `xattr -cr /Applications/Claude\ Watch.app` then relaunch. This clears the macOS quarantine flag for ad-hoc signed apps. |
+| **App won't open (blocked by macOS)** | See [Opening on macOS Sequoia+](#opening-on-macos-sequoia) below. |
+
+### Opening on macOS Sequoia+
+
+Claude Watch is free and open-source but is not signed with an Apple Developer certificate. macOS Sequoia (15.0+) will block the app on first launch. To allow it:
+
+1. Open **Claude Watch** — macOS will show a blocked/warning dialog. Dismiss it.
+2. Open **System Settings → Privacy & Security**
+3. Scroll down to the Security section — you will see *"Claude Watch" was blocked from use because it is not from an identified developer*
+4. Click **Open Anyway** and authenticate with your password or Touch ID
+5. macOS will ask one more time — click **Open**
+
+This only needs to be done once. After that, the app will open normally.
+
+**Alternative (Terminal):** Strip the quarantine attribute and open directly:
+
+```bash
+xattr -cr "/Applications/Claude Watch.app"
+open "/Applications/Claude Watch.app"
+```
 
 ### Exporting Logs
 
