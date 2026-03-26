@@ -3,6 +3,17 @@ import SwiftUI
 /// A self-contained card rendered to an NSImage for sharing via the system share sheet.
 struct UsageSnapshotView: View {
     let usage: UsageData
+    @Environment(\.colorScheme) private var colorScheme
+
+    /// Background that responds to SwiftUI's colorScheme environment.
+    /// NSColor.windowBackgroundColor ignores colorScheme inside ImageRenderer,
+    /// so we approximate macOS window backgrounds with explicit colors.
+    private static let darkBackground  = Color(red: 0.15, green: 0.15, blue: 0.16)
+    private static let lightBackground = Color(red: 0.98, green: 0.98, blue: 0.98)
+
+    private var cardBackground: Color {
+        colorScheme == .dark ? Self.darkBackground : Self.lightBackground
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -13,7 +24,7 @@ struct UsageSnapshotView: View {
             footerRow
         }
         .frame(width: 300)
-        .background(Color(NSColor.windowBackgroundColor))
+        .background(cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
         .padding(12) // give shadow room to breathe

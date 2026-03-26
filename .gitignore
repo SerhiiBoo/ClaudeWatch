@@ -4,6 +4,7 @@
 *.app/
 *.o
 *.d
+*.dmg
 
 # Xcode
 *.xcodeproj/

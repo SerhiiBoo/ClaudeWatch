@@ -1,5 +1,6 @@
 import Foundation
 import Carbon.HIToolbox
+import SwiftUI
 
 /// Centralized, UserDefaults-backed settings for all configurable options.
 /// Each property auto-persists on write. Read once at init from UserDefaults.
@@ -9,13 +10,15 @@ struct AppSettings {
     // MARK: - Named constants
 
     static let defaultNotificationThresholds: [Double] = [50, 80, 90]
-    static let minimumMeaningfulPacePerHour: Double = 0.5
+    static let appearanceModeKey = "appearanceMode"
+    static let appVersion: String = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
     static let defaultRefreshInterval: TimeInterval = 120
     /// Default Carbon modifier flags: cmdKey | shiftKey.
     static let defaultHotkeyModifiers = UInt32(cmdKey) | UInt32(shiftKey)
 
     // MARK: - Keys
     private enum Key: String {
+        case appearanceMode
         case notificationThresholds
         case notificationsEnabled
         case sparklineHours
@@ -32,6 +35,16 @@ struct AppSettings {
         case globalHotkeyKeyCode
         case globalHotkeyModifiers
         case refreshInterval
+    }
+
+    // MARK: - Appearance
+    /// Read-only accessor. Views write via `@AppStorage("appearanceMode")` for reactivity.
+    static var appearanceMode: AppearanceMode {
+        guard let raw = defaults.string(forKey: appearanceModeKey),
+              let mode = AppearanceMode(rawValue: raw) else {
+            return .system
+        }
+        return mode
     }
 
     // MARK: - Notification thresholds
@@ -192,6 +205,25 @@ enum MenuBarIcon: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
     var displayName: String { rawValue }
+}
+
+// MARK: - Appearance mode
+
+enum AppearanceMode: String, CaseIterable, Identifiable {
+    case system = "System"
+    case light = "Light"
+    case dark = "Dark"
+
+    var id: String { rawValue }
+    var displayName: String { rawValue }
+
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: return nil
+        case .light: return .light
+        case .dark: return .dark
+        }
+    }
 }
 
 // MARK: - Terminal / IDE app enum

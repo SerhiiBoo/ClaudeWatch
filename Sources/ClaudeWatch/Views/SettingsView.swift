@@ -20,6 +20,7 @@ struct SettingsView: View {
     @State private var terminalWorkingDirectory = AppSettings.terminalWorkingDirectory
     @State private var compactMode = AppSettings.compactMode
     @State private var menuBarStyle = AppSettings.menuBarStyle
+    @AppStorage(AppSettings.appearanceModeKey) private var appearanceModeRaw: String = AppearanceMode.system.rawValue
     @State private var menuBarIcon = AppSettings.menuBarIcon
     @State private var globalHotkeyEnabled = AppSettings.globalHotkeyEnabled
     @State private var globalHotkeyKeyCode = AppSettings.globalHotkeyKeyCode
@@ -46,9 +47,9 @@ struct SettingsView: View {
                     errorBanner
                 }
                 .padding(.horizontal, 16)
-                .padding(.vertical, 12)
+                .padding(.vertical, 14)
             }
-            .frame(maxHeight: 420)
+            .frame(maxHeight: 440)
             Divider()
             footerActions
         }
@@ -66,11 +67,15 @@ struct SettingsView: View {
 
     private var titleBar: some View {
         HStack {
+            Image(systemName: "gearshape.fill")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
             Text("Settings")
                 .font(.headline)
             Spacer()
             Button { onDismiss() } label: {
                 Image(systemName: "xmark.circle.fill")
+                    .font(.title3)
                     .foregroundStyle(.tertiary)
             }
             .buttonStyle(.plain)
@@ -78,19 +83,24 @@ struct SettingsView: View {
         .padding(.horizontal, 16)
         .padding(.top, 14)
         .padding(.bottom, 10)
+        .background(.ultraThinMaterial)
     }
 
     private var footerActions: some View {
         HStack {
-            Button("Refresh Now") {
+            Button {
                 viewModel.refresh()
                 onDismiss()
+            } label: {
+                Label("Refresh Now", systemImage: "arrow.clockwise")
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.small)
 
-            Button("Quit") {
+            Button(role: .destructive) {
                 NSApp.terminate(nil)
+            } label: {
+                Label("Quit", systemImage: "power")
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
@@ -99,10 +109,11 @@ struct SettingsView: View {
 
             Text("v\(appVersion)")
                 .font(.caption2)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(.quaternary)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
+        .background(.ultraThinMaterial)
     }
 
     // MARK: - General
@@ -136,6 +147,16 @@ struct SettingsView: View {
                     .controlSize(.mini)
                     .labelsHidden()
                     .onChange(of: compactMode) { _, v in AppSettings.compactMode = v }
+            }
+            settingsRow("Appearance") {
+                Picker("", selection: $appearanceModeRaw) {
+                    ForEach(AppearanceMode.allCases) { mode in
+                        Text(mode.displayName).tag(mode.rawValue)
+                    }
+                }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .fixedSize()
             }
             settingsRow("Menu bar") {
                 Picker("", selection: $menuBarStyle) {
@@ -189,7 +210,7 @@ struct SettingsView: View {
 
     private var hotkeysSection: some View {
         settingsSection("Hotkeys", subtitle: "Global keyboard shortcut to show or hide the ClaudeWatch popover from anywhere.") {
-            settingsRow("Global shortcut") {
+            settingsRow("Enable hotkey") {
                 Toggle("", isOn: $globalHotkeyEnabled)
                     .toggleStyle(.switch)
                     .controlSize(.mini)
@@ -461,11 +482,12 @@ struct SettingsView: View {
         HStack(spacing: 6) {
             Image(systemName: "key.fill")
                 .font(.caption2)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(.quaternary)
             Text("Credentials read from Keychain. Run `claude` to refresh.")
                 .font(.caption2)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(.quaternary)
         }
+        .padding(.vertical, 2)
     }
 
     @ViewBuilder
@@ -486,38 +508,53 @@ struct SettingsView: View {
         @ViewBuilder content: () -> Content
     ) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title.uppercased())
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(.secondary)
-                .tracking(0.5)
+            HStack(spacing: 0) {
+                Text(title.uppercased())
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(.secondary)
+                    .tracking(0.8)
+                Spacer()
+            }
             if let subtitle {
                 Text(subtitle)
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 8) {
                 content()
             }
-            .padding(10)
+            .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.primary.opacity(0.04))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .background {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(.ultraThinMaterial)
+                    .shadow(color: .primary.opacity(0.08), radius: 3, y: 1)
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(
+                        .linearGradient(
+                            colors: [Color.primary.opacity(0.15), Color.primary.opacity(0.04)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 0.5
+                    )
+            }
         }
     }
 
     private func settingsRow<Trailing: View>(_ label: String, @ViewBuilder trailing: () -> Trailing) -> some View {
         HStack {
             Text(label)
-                .font(.caption)
+                .font(.system(.caption, weight: .medium))
             Spacer()
             trailing()
         }
     }
 
-    private var appVersion: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
-    }
+    private var appVersion: String { AppSettings.appVersion }
 
     private func setLoginItem(enabled: Bool) {
         loginItemError = nil

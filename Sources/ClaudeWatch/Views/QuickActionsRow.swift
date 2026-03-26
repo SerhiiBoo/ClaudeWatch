@@ -51,7 +51,7 @@ struct QuickActionsRow: View {
         } catch {
             let displayName = AppSettings.terminalApp.displayName
             guard !displayName.isEmpty else {
-                print("[QuickActionsRow] Primary launch failed and terminal display name is empty; cannot fall back: \(error)")
+                LogService.log(.error, category: "QuickActionsRow", "Primary launch failed and terminal display name is empty; cannot fall back", details: ["error": "\(error)"])
                 return
             }
             let fallback = Process()
@@ -60,7 +60,7 @@ struct QuickActionsRow: View {
             do {
                 try fallback.run()
             } catch let fallbackError {
-                print("[QuickActionsRow] Fallback launch of '\(displayName)' also failed: \(fallbackError)")
+                LogService.log(.error, category: "QuickActionsRow", "Fallback launch of '\(displayName)' also failed", details: ["error": "\(fallbackError)"])
             }
         }
     }
@@ -115,12 +115,19 @@ struct QuickActionsRow: View {
     @MainActor private func shareScreenshot() {
         guard let u = usage else { return }
 
+        // Resolve the effective color scheme (respecting "System" default).
+        let scheme = AppSettings.appearanceMode.colorScheme
+            ?? (NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                ? ColorScheme.dark : ColorScheme.light)
+
         let snapshotView = UsageSnapshotView(usage: u)
+            .environment(\.colorScheme, scheme)
         let renderer = ImageRenderer(content: snapshotView)
         renderer.scale = 2.0
 
-        guard let image = renderer.nsImage,
-              let contentView = NSApp.keyWindow?.contentView else { return }
+        guard let image = renderer.nsImage else { return }
+        let window = NSApp.keyWindow ?? NSApp.mainWindow ?? NSApp.windows.first
+        guard let contentView = window?.contentView else { return }
 
         let picker = NSSharingServicePicker(items: [image])
         picker.show(relativeTo: .zero, of: contentView, preferredEdge: .minY)
@@ -156,21 +163,32 @@ private struct ActionButton: View {
             .padding(.horizontal, style == .primary ? 12 : 9)
             .padding(.vertical, 6)
             .frame(maxWidth: style == .primary ? .infinity : nil)
-            .background(
+            .background {
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(isPressed
-                          ? Color.primary.opacity(0.11)
-                          : isHovered
-                              ? Color.primary.opacity(0.08)
-                              : Color.primary.opacity(0.05))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .strokeBorder(Color.primary.opacity(0.09), lineWidth: 0.5)
+                    .fill(.ultraThinMaterial)
+                    .shadow(
+                        color: .primary.opacity(isPressed ? 0.04 : isHovered ? 0.08 : 0.05),
+                        radius: isHovered ? 4 : 2,
+                        y: 1
                     )
-            )
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(
+                        .linearGradient(
+                            colors: [
+                                Color.primary.opacity(isHovered ? 0.18 : 0.12),
+                                Color.primary.opacity(0.04)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 0.5
+                    )
+            }
             .scaleEffect(isPressed ? 0.96 : 1)
             .animation(.easeOut(duration: 0.1), value: isPressed)
-            .animation(.easeOut(duration: 0.12), value: isHovered)
+            .animation(.easeOut(duration: 0.15), value: isHovered)
         }
         .buttonStyle(.plain)
         .disabled(disabled)

@@ -30,10 +30,26 @@ struct UsageSectionView: View {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(Color.primary.opacity(0.1))
+                        .fill(.primary.opacity(0.06))
+                        .overlay {
+                            Capsule()
+                                .strokeBorder(.primary.opacity(0.08), lineWidth: 0.5)
+                        }
                         .frame(height: 8)
                     Capsule()
-                        .fill(barColor)
+                        .fill(
+                            .linearGradient(
+                                colors: [barColor.opacity(0.9), barColor],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .overlay {
+                            Capsule()
+                                .fill(Color.primary.opacity(0.15))
+                                .frame(height: 3)
+                                .padding(.horizontal, 1)
+                        }
                         .frame(width: max(used > 0 ? 8 : 0, geo.size.width * (used / 100)), height: 8)
                 }
             }

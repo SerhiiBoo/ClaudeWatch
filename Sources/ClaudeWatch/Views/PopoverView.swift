@@ -3,34 +3,29 @@ import SwiftUI
 struct PopoverView: View {
     @EnvironmentObject var viewModel: UsageViewModel
     @State private var showSettings = false
+    @AppStorage(AppSettings.appearanceModeKey) private var appearanceModeRaw: String = AppearanceMode.system.rawValue
 
     var body: some View {
-        if showSettings {
-            SettingsView(onDismiss: { showSettings = false })
-                .environmentObject(viewModel)
-        } else {
-            VStack(spacing: 0) {
-                headerRow
-                Divider()
-                rateLimitBanner
-                if viewModel.usage != nil && !AppSettings.compactMode {
-                    ScrollView {
-                        VStack(spacing: 0) {
-                            contentArea
-                        }
-                    }
-                    .frame(maxHeight: 700)
-                } else {
+        Group {
+            if showSettings {
+                SettingsView(onDismiss: { showSettings = false })
+                    .environmentObject(viewModel)
+            } else {
+                VStack(spacing: 0) {
+                    headerRow
+                    Divider().opacity(0.5)
+                    rateLimitBanner
                     VStack(spacing: 0) {
                         contentArea
                     }
+                    Divider().opacity(0.5)
+                    footerRow
                 }
-                Divider()
-                footerRow
+                .frame(width: 320)
+                .background(.ultraThinMaterial)
             }
-            .frame(width: 320)
-            .background(.background)
         }
+        .preferredColorScheme(AppearanceMode(rawValue: appearanceModeRaw)?.colorScheme)
     }
 
     // MARK: - Header
@@ -60,13 +55,18 @@ struct PopoverView: View {
                 .foregroundStyle(paceColor(pace))
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
-                .background(paceColor(pace).opacity(0.1))
+                .background(.ultraThinMaterial)
+                .overlay {
+                    Capsule()
+                        .strokeBorder(paceColor(pace).opacity(0.2), lineWidth: 0.5)
+                }
                 .clipShape(Capsule())
                 .help("Session usage pace: you're consuming ~\(Int(pace))% of your 5-hour session quota per hour")
             }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
+        .background(.ultraThinMaterial)
     }
 
     // MARK: - Rate-limit banner (softer blue/grey tone + progress ring + why tooltip)
@@ -105,14 +105,14 @@ struct PopoverView: View {
             // Mini progress ring countdown
             ZStack {
                 Circle()
-                    .stroke(Color.secondary.opacity(0.15), lineWidth: 2.5)
+                    .stroke(.primary.opacity(0.08), lineWidth: 2.5)
                 Circle()
                     .trim(from: 0, to: max(0, 1 - remaining / totalWait))
-                    .stroke(Color.blue, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                    .stroke(Color.blue.opacity(0.8), style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
                     .rotationEffect(.degrees(-90))
                 Image(systemName: "pause.fill")
                     .font(.system(size: 7))
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(.blue.opacity(0.8))
             }
             .frame(width: 22, height: 22)
 
@@ -206,7 +206,11 @@ struct PopoverView: View {
         .foregroundStyle(.secondary)
         .padding(.horizontal, 10)
         .padding(.vertical, 4)
-        .background(Color.secondary.opacity(0.08))
+        .background(.ultraThinMaterial)
+        .overlay {
+            Capsule()
+                .strokeBorder(.primary.opacity(0.1), lineWidth: 0.5)
+        }
         .clipShape(Capsule())
         .padding(.top, 8)
         .padding(.bottom, 4)
@@ -308,7 +312,7 @@ struct PopoverView: View {
                     HStack(spacing: 10) {
                         SparklineView(
                             snapshots: history,
-                            label: "Session (\(AppSettings.sparklineHours)h)",
+                            label: "Session (\(formattedSparklineWindow))",
                             keyPath: \.sessionUsed
                         )
                         .frame(maxWidth: .infinity)
@@ -317,11 +321,12 @@ struct PopoverView: View {
 
                         SparklineView(
                             snapshots: history,
-                            label: "Weekly (\(AppSettings.sparklineHours)h)",
+                            label: "Weekly (\(formattedSparklineWindow))",
                             keyPath: \.weeklyUsed
                         )
                         .frame(maxWidth: .infinity)
                     }
+                    .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
                 }
@@ -376,17 +381,20 @@ struct PopoverView: View {
     private func sessionEstimateRow(usage: UsageData, hours: Double, pace: Double) -> some View {
         let beyondWindow = hours >= Self.sessionWindowHours
 
+        let ringColor: Color = beyondWindow ? .green : hours < 1 ? .red : hours < 2 ? .yellow : .blue
+
         return HStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .stroke(Color.primary.opacity(0.08), lineWidth: 5)
+                    .stroke(.primary.opacity(0.06), lineWidth: 5)
                 Circle()
                     .trim(from: 0, to: min(1, (100 - usage.sessionRemaining) / 100))
                     .stroke(
-                        beyondWindow ? .green : hours < 1 ? Color.red : hours < 2 ? .yellow : .green,
+                        ringColor.opacity(0.85),
                         style: StrokeStyle(lineWidth: 5, lineCap: .round)
                     )
                     .rotationEffect(.degrees(-90))
+                    .shadow(color: ringColor.opacity(0.3), radius: 4)
                 VStack(spacing: 0) {
                     if beyondWindow {
                         Image(systemName: "checkmark")
@@ -427,9 +435,7 @@ struct PopoverView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(
-            (beyondWindow ? Color.green : hours < 1 ? Color.red : hours < 2 ? .yellow : .green).opacity(0.05)
-        )
+        .background(ringColor.opacity(0.04))
     }
 
     private func etaText(_ hours: Double) -> String {
@@ -504,7 +510,7 @@ struct PopoverView: View {
 
             Spacer()
 
-            Text("Claude Watch v\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?")")
+            Text("Claude Watch v\(appVersion)")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
 
@@ -529,6 +535,19 @@ struct PopoverView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
+        .background(.ultraThinMaterial)
+    }
+
+    private var appVersion: String { AppSettings.appVersion }
+
+    // MARK: - Sparkline helpers
+
+    private var formattedSparklineWindow: String {
+        let hours = AppSettings.sparklineHours
+        if hours >= 24, hours % 24 == 0 {
+            return "\(hours / 24)d"
+        }
+        return "\(hours)h"
     }
 
     // MARK: - Status icon helpers
