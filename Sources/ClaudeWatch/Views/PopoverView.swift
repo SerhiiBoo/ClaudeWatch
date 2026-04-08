@@ -249,6 +249,10 @@ struct PopoverView: View {
                 Divider()
                 UsageSectionView(title: "Opus", subtitle: "7-day window", remaining: or, resetsAt: ora)
             }
+            if let extra = usage.extraUsage, shouldShowExtraUsage(extra) {
+                Divider()
+                ExtraUsageSectionView(data: extra)
+            }
 
             // Projected usage during rate limit
             if viewModel.rateLimitedUntil != nil {
@@ -295,6 +299,10 @@ struct PopoverView: View {
             if let or = usage.opusRemaining, let ora = usage.opusResetsAt {
                 Divider()
                 UsageSectionView(title: "Opus", subtitle: "7-day window", remaining: or, resetsAt: ora)
+            }
+            if let extra = usage.extraUsage, shouldShowExtraUsage(extra) {
+                Divider()
+                ExtraUsageSectionView(data: extra)
             }
 
             // Projected usage during rate limit
@@ -591,6 +599,10 @@ struct PopoverView: View {
         case 10..<20: return .yellow
         default:      return .green
         }
+    }
+
+    private func shouldShowExtraUsage(_ extra: ExtraUsageData) -> Bool {
+        extra.isEnabled || extra.spentDollars > 0
     }
 
     private func formatCountdown(_ interval: TimeInterval) -> String {

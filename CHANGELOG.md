@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-04-08
+
+### Added
+
+- Extra (pay-as-you-go) usage tracking — displays spend, monthly limit, and utilization when the API returns extra-usage data
+- New `ExtraUsageSectionView` with color-coded progress bar and spend/limit breakdown
+- Debug logging for raw API responses to aid troubleshooting
+
+### Changed
+
+- API log sanitization rewritten with Swift Regex literals (compile-time verified) replacing `NSRegularExpression`
+- ISO 8601 date formatters promoted to static properties — allocated once instead of on every API response
+- HTTP error messages simplified for clarity
+- Date-parse failure logs no longer include the raw value (privacy improvement)
+
+### Fixed
+
+- TOCTOU race condition in `LogService.writeEntry` — replaced existence check + open with atomic `O_CREAT | O_WRONLY | O_APPEND`
+
 ## [1.1.1] - 2026-03-26
 
 ### Added

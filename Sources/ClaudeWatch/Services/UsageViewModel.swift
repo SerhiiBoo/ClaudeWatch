@@ -192,18 +192,26 @@ final class UsageViewModel: ObservableObject {
         }
     }
 
+    private static let isoWithFrac: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+
+    private static let isoPlain: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime]
+        return f
+    }()
+
     private func mapResponse(_ r: UsageAPIResponse, plan: String) -> UsageData {
         let now = Date()
 
         func parseDate(_ s: String) -> Date? {
-            let withFrac = ISO8601DateFormatter()
-            withFrac.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            if let d = withFrac.date(from: s) { return d }
-            let plain = ISO8601DateFormatter()
-            plain.formatOptions = [.withInternetDateTime]
-            if let d = plain.date(from: s) { return d }
+            if let d = Self.isoWithFrac.date(from: s) { return d }
+            if let d = Self.isoPlain.date(from: s) { return d }
             logger.warning("Failed to parse date string: \(s, privacy: .private)")
-            LogService.warning("ViewModel", "Failed to parse date string: \(s)")
+            LogService.warning("ViewModel", "Failed to parse ISO 8601 date string (value omitted for privacy)")
             return nil
         }
 
@@ -247,6 +255,18 @@ final class UsageViewModel: ObservableObject {
             opusResetsAt  = nil
         }
 
+        let extraUsage: ExtraUsageData?
+        if let eu = r.extraUsage {
+            extraUsage = ExtraUsageData(
+                isEnabled:           eu.isEnabled ?? false,
+                spentDollars:        (eu.usedCredits ?? 0) / 100,
+                monthlyLimitDollars: (eu.monthlyLimit ?? 0) / 100,
+                utilization:         max(0, min(100, eu.utilization ?? 0))
+            )
+        } else {
+            extraUsage = nil
+        }
+
         return UsageData(
             sessionRemaining: sessionRemaining,
             sessionResetsAt:  sessionResetsAt,
@@ -257,7 +277,8 @@ final class UsageViewModel: ObservableObject {
             opusRemaining:    opusRemaining,
             opusResetsAt:     opusResetsAt,
             plan:             plan,
-            fetchedAt:        now
+            fetchedAt:        now,
+            extraUsage:       extraUsage
         )
     }
 

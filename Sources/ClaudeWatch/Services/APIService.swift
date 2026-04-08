@@ -15,8 +15,8 @@ enum APIError: LocalizedError {
             return "Invalid server response."
         case .rateLimited:
             return "Rate limited by Anthropic API."
-        case .httpError(let code, let msg):
-            return "HTTP \(code)\(msg.map { ": \($0)" } ?? "")."
+        case .httpError(let code, _):
+            return "HTTP \(code). Please try again."
         case .decodingFailed(let detail):
             return "Could not parse response: \(detail)"
         }
@@ -45,8 +45,11 @@ struct APIService {
 
         guard http.statusCode == 200 else {
             let body = String(data: data, encoding: .utf8).map { sanitizeForLog($0) }
+            logger.error("HTTP \(http.statusCode): \(body ?? "<empty>", privacy: .private)")
             throw APIError.httpError(http.statusCode, body)
         }
+
+        logger.debug("Raw usage response: \(String(data: data, encoding: .utf8) ?? "<non-UTF8>", privacy: .private)")
 
         do {
             return try JSONDecoder().decode(UsageAPIResponse.self, from: data)
@@ -64,27 +67,22 @@ struct APIService {
 
     // MARK: - Private
 
-    // Compiled once at startup — patterns are compile-time constants so try! is safe.
-    private static let sensitiveRegexes: [NSRegularExpression] = [
-        try! NSRegularExpression(
-            pattern: #"("(?:access_?token|token|key|secret|password|authorization|cookie)")\s*:\s*"[^"]*""#,
-            options: .caseInsensitive
-        ),
-        try! NSRegularExpression(
-            pattern: #"Bearer\s+[A-Za-z0-9\-._~+/]+=*"#,
-            options: .caseInsensitive
-        ),
-    ]
-
     /// Redact values that could contain tokens or secrets from raw API responses.
+    /// Patterns are Swift Regex literals — syntax is verified at compile time.
     private static func sanitizeForLog(_ raw: String) -> String {
-        sensitiveRegexes.reduce(raw) { sanitized, regex in
-            regex.stringByReplacingMatches(
-                in: sanitized,
-                range: NSRange(sanitized.startIndex..., in: sanitized),
-                withTemplate: "$1: \"[REDACTED]\""
-            )
+        var result = raw
+        // Erase values of sensitive JSON keys (case-insensitive)
+        result = result.replacing(
+            #/(?i)("(?:access_?token|token|key|secret|password|authorization|cookie)")\s*:\s*"[^"]*"/#
+        ) { match in
+            "\(match.output.1): \"[REDACTED]\""
         }
+        // Erase Bearer token values
+        result = result.replacing(
+            #/(?i)Bearer\s+[A-Za-z0-9\-._~+/]+=*/#,
+            with: "Bearer [REDACTED]"
+        )
+        return result
     }
 
     private static func parseRetryAfter(_ value: String?) -> Date? {

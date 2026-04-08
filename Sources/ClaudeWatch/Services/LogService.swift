@@ -198,24 +198,15 @@ struct LogService {
             line += "  \(key): \(value)\n"
         }
 
-        if FileManager.default.fileExists(atPath: fileURL.path) {
-            do {
-                let handle = try FileHandle(forWritingTo: fileURL)
-                handle.seekToEndOfFile()
-                handle.write(Data(line.utf8))
-                handle.closeFile()
-            } catch {
-                osLogger.error("writeEntry: failed to open log file for writing: \(error.localizedDescription)")
-                return
-            }
-        } else {
-            do {
-                try Data(line.utf8).write(to: fileURL, options: .atomic)
-            } catch {
-                osLogger.error("writeEntry: failed to create log file: \(error.localizedDescription)")
-                return
-            }
+        // O_CREAT | O_WRONLY | O_APPEND: creates the file if absent, always appends.
+        // Eliminates the TOCTOU race between existence-check and open.
+        let fd = Darwin.open(fileURL.path, O_CREAT | O_WRONLY | O_APPEND, 0o644)
+        guard fd >= 0 else {
+            osLogger.error("writeEntry: failed to open log file (errno \(errno))")
+            return
         }
+        let handle = FileHandle(fileDescriptor: fd, closeOnDealloc: true)
+        handle.write(Data(line.utf8))
 
         rotateIfNeeded()
     }
