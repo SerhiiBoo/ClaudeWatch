@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 import os.log
 
@@ -23,8 +24,9 @@ final class UsageViewModel: ObservableObject {
     private var rateLimitRetryTask: Task<Void, Never>?
     private var timer: Timer?
     private var consecutiveRateLimits = 0
+    private var isPaused = false
 
-    /// Optional data provider. When set, `fetchUsage()` calls this instead of the API.
+    /// Swaps in a mock data provider. For previews and tests only.
     var dataOverride: (() async -> UsageData)? = nil
 
 
@@ -35,11 +37,24 @@ final class UsageViewModel: ObservableObject {
     // MARK: - Public interface
 
     func refresh() {
+        guard !isPaused else { return }
         // Don't fire API calls while rate-limited
         if let until = rateLimitedUntil, until > Date() { return }
         rateLimitRetryTask?.cancel()   // Prevent concurrent fetch with retry
         refreshTask?.cancel()
         refreshTask = Task { await fetchUsage() }
+    }
+
+    func pauseAutoRefresh() {
+        isPaused = true
+        timer?.invalidate()
+        timer = nil
+        refreshTask?.cancel()
+    }
+
+    func resumeAutoRefresh() {
+        isPaused = false
+        restartTimer()
     }
 
     func startAutoRefresh() {
@@ -68,6 +83,7 @@ final class UsageViewModel: ObservableObject {
     // MARK: - Private
 
     private func fetchUsage() async {
+        guard !isPaused else { return }
         // Don't hammer API while still rate-limited
         if let until = rateLimitedUntil, until > Date() { return }
 
@@ -88,6 +104,8 @@ final class UsageViewModel: ObservableObject {
         do {
             let creds = try KeychainService.loadCredentials()
             let response = try await APIService.fetchUsage(token: creds.accessToken)
+            // Check cancellation after each await point — add a guard here if new awaits are inserted above.
+            guard !Task.isCancelled else { return }
             let newUsage = mapResponse(response, plan: planName(creds.subscriptionType))
             let previousUsage = usage
             usage = newUsage
@@ -99,48 +117,9 @@ final class UsageViewModel: ObservableObject {
             UsageHistoryService.record(newUsage)
             NotificationService.checkThresholds(usage: newUsage, previousUsage: previousUsage)
         } catch APIError.rateLimited(let retryAfter) {
-            consecutiveRateLimits += 1
-            logger.info("Rate limited (attempt \(self.consecutiveRateLimits)), retry after: \(retryAfter?.description ?? "nil")")
-            LogService.warning("ViewModel", "Rate limited by API", details: [
-                "attempt": "\(consecutiveRateLimits)",
-                "retry_after": retryAfter?.description ?? "nil",
-            ])
-            let serverDate = retryAfter ?? Date().addingTimeInterval(60)
-            errorMessage = nil          // banner handles display
-            // Pause periodic timer — no point polling while rate limited
-            timer?.invalidate()
-            timer = nil
-            scheduleRateLimitRetry(serverDate: serverDate)
+            handleRateLimit(retryAfter)
         } catch {
-            rateLimitedUntil = nil      // Clear on non-rate-limit errors
-            logger.error("Fetch failed: \(error.localizedDescription)")
-            // Show user-friendly messages; log structured detail for diagnostics
-            if let apiErr = error as? APIError {
-                errorMessage = apiErr.errorDescription
-                LogService.error("ViewModel", "API error", error: apiErr, details: [
-                    "error_case": String(describing: apiErr),
-                ])
-            } else if let urlErr = error as? URLError {
-                LogService.error("ViewModel", "Network error", error: urlErr, details: [
-                    "url_error_code": "\(urlErr.code.rawValue)",
-                ])
-                switch urlErr.code {
-                case .notConnectedToInternet, .networkConnectionLost:
-                    errorMessage = "No internet connection."
-                case .timedOut:
-                    errorMessage = "Request timed out."
-                default:
-                    errorMessage = "Network error. Check your connection."
-                }
-            } else if let kcErr = error as? KeychainError {
-                errorMessage = kcErr.errorDescription
-                LogService.error("ViewModel", "Keychain error", error: kcErr, details: [
-                    "error_case": String(describing: kcErr),
-                ])
-            } else {
-                errorMessage = "An unexpected error occurred."
-                LogService.error("ViewModel", "Unexpected error", error: error)
-            }
+            handleFetchError(error)
         }
 
         // Always ensure the periodic timer is running (unless just rate-limited)
@@ -152,19 +131,85 @@ final class UsageViewModel: ObservableObject {
         NotificationCenter.default.post(name: .usageDidUpdate, object: nil)
     }
 
+    private func handleRateLimit(_ retryAfter: Date?) {
+        consecutiveRateLimits += 1
+        logger.info("Rate limited (attempt \(self.consecutiveRateLimits)), retry after: \(retryAfter?.description ?? "nil")")
+        LogService.warning("ViewModel", "Rate limited by API", details: [
+            "attempt": "\(consecutiveRateLimits)",
+            "retry_after": retryAfter?.description ?? "nil",
+        ])
+        let serverDate = retryAfter ?? Date().addingTimeInterval(60)
+        errorMessage = nil          // banner handles display
+        // Pause periodic timer — no point polling while rate limited
+        timer?.invalidate()
+        timer = nil
+        scheduleRateLimitRetry(serverDate: serverDate)
+    }
+
+    private func handleFetchError(_ error: Error) {
+        rateLimitedUntil = nil      // Clear on non-rate-limit errors
+        logger.error("Fetch failed: \(error.localizedDescription)")
+        // Show user-friendly messages; log structured detail for diagnostics
+        if let apiErr = error as? APIError {
+            errorMessage = apiErr.errorDescription
+            LogService.error("ViewModel", "API error", error: apiErr, details: [
+                "error_case": String(describing: apiErr),
+            ])
+        } else if let urlErr = error as? URLError {
+            LogService.error("ViewModel", "Network error", error: urlErr, details: [
+                "url_error_code": "\(urlErr.code.rawValue)",
+            ])
+            switch urlErr.code {
+            case .notConnectedToInternet, .networkConnectionLost:
+                errorMessage = "No internet connection."
+            case .timedOut:
+                errorMessage = "Request timed out."
+            default:
+                errorMessage = "Network error. Check your connection."
+            }
+        } else if let kcErr = error as? KeychainError {
+            errorMessage = kcErr.errorDescription
+            LogService.error("ViewModel", "Keychain error", error: kcErr, details: [
+                "error_case": String(describing: kcErr),
+            ])
+        } else {
+            errorMessage = "An unexpected error occurred."
+            LogService.error("ViewModel", "Unexpected error", error: error)
+        }
+    }
+
     private func scheduleTimer(interval: TimeInterval) {
         timer?.invalidate()
         let t = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             guard let self else { return }
-            Task { @MainActor in self.refresh() }
+            Task { @MainActor in
+                guard !self.isUserIdle() else { return }
+                self.refresh()
+            }
         }
         timer = t
         RunLoop.main.add(t, forMode: .common)
     }
 
+    /// Returns true when the user has been inactive longer than `idleFetchThreshold`.
+    private func isUserIdle() -> Bool {
+        // UInt32.max == kCGAnyInputEventType; CGEventType.init is failable but always
+        // succeeds for this well-known constant — safe to force-unwrap.
+        let idle = CGEventSource.secondsSinceLastEventType(
+            .combinedSessionState,
+            eventType: CGEventType(rawValue: UInt32.max)! // swiftlint:disable:this force_unwrapping
+        )
+        if idle >= AppSettings.idleFetchThreshold {
+            logger.debug("Timer tick skipped — user idle for \(Int(idle))s")
+            return true
+        }
+        return false
+    }
+
     private func restartTimer() {
-        // Don't restart periodic timer while rate-limited (it's paused on purpose)
-        guard rateLimitedUntil == nil || rateLimitedUntil! <= Date() else { return }
+        // Don't restart periodic timer while paused or rate-limited
+        guard !isPaused else { return }
+        guard rateLimitedUntil.map({ $0 <= Date() }) != false else { return }
         scheduleTimer(interval: refreshInterval)
     }
 
@@ -206,65 +251,22 @@ final class UsageViewModel: ObservableObject {
 
     private func mapResponse(_ r: UsageAPIResponse, plan: String) -> UsageData {
         let now = Date()
+        let (sessionRemaining, sessionResetsAt) = mapWindow(
+            r.fiveHour, fallback: now.addingTimeInterval(5 * 3600)
+        )
+        let (weeklyRemaining, weeklyResetsAt) = mapWindow(
+            r.sevenDay, fallback: now.addingTimeInterval(7 * 86400)
+        )
+        let (sonnetRemaining, sonnetResetsAt) = mapOptionalWindow(r.sevenDaySonnet)
+        let (opusRemaining,   opusResetsAt)   = mapOptionalWindow(r.sevenDayOpus)
 
-        func parseDate(_ s: String) -> Date? {
-            if let d = Self.isoWithFrac.date(from: s) { return d }
-            if let d = Self.isoPlain.date(from: s) { return d }
-            logger.warning("Failed to parse date string: \(s, privacy: .private)")
-            LogService.warning("ViewModel", "Failed to parse ISO 8601 date string (value omitted for privacy)")
-            return nil
-        }
-
-        let sessionRemaining: Double
-        let sessionResetsAt: Date
-        if let w = r.fiveHour {
-            sessionRemaining = max(0, min(100, 100 - w.utilization))
-            sessionResetsAt  = w.resetsAt.flatMap(parseDate) ?? now.addingTimeInterval(5 * 3600)
-        } else {
-            sessionRemaining = 100
-            sessionResetsAt  = now.addingTimeInterval(5 * 3600)
-        }
-
-        let weeklyRemaining: Double
-        let weeklyResetsAt: Date
-        if let w = r.sevenDay {
-            weeklyRemaining = max(0, min(100, 100 - w.utilization))
-            weeklyResetsAt  = w.resetsAt.flatMap(parseDate) ?? now.addingTimeInterval(7 * 86400)
-        } else {
-            weeklyRemaining = 100
-            weeklyResetsAt  = now.addingTimeInterval(7 * 86400)
-        }
-
-        let sonnetRemaining: Double?
-        let sonnetResetsAt: Date?
-        if let w = r.sevenDaySonnet {
-            sonnetRemaining = max(0, min(100, 100 - w.utilization))
-            sonnetResetsAt  = w.resetsAt.flatMap(parseDate)
-        } else {
-            sonnetRemaining = nil
-            sonnetResetsAt  = nil
-        }
-
-        let opusRemaining: Double?
-        let opusResetsAt: Date?
-        if let w = r.sevenDayOpus {
-            opusRemaining = max(0, min(100, 100 - w.utilization))
-            opusResetsAt  = w.resetsAt.flatMap(parseDate)
-        } else {
-            opusRemaining = nil
-            opusResetsAt  = nil
-        }
-
-        let extraUsage: ExtraUsageData?
-        if let eu = r.extraUsage {
-            extraUsage = ExtraUsageData(
-                isEnabled:           eu.isEnabled ?? false,
-                spentDollars:        (eu.usedCredits ?? 0) / 100,
-                monthlyLimitDollars: (eu.monthlyLimit ?? 0) / 100,
-                utilization:         max(0, min(100, eu.utilization ?? 0))
+        let extraUsage = r.extraUsage.map {
+            ExtraUsageData(
+                isEnabled:           $0.isEnabled ?? false,
+                spentDollars:        ($0.usedCredits ?? 0) / 100,
+                monthlyLimitDollars: ($0.monthlyLimit ?? 0) / 100,
+                utilization:         max(0, min(100, $0.utilization ?? 0))
             )
-        } else {
-            extraUsage = nil
         }
 
         return UsageData(
@@ -280,6 +282,28 @@ final class UsageViewModel: ObservableObject {
             fetchedAt:        now,
             extraUsage:       extraUsage
         )
+    }
+
+    /// Maps a required usage window; returns 100% remaining and `fallback` date when absent.
+    private func mapWindow(_ window: WindowUsage?, fallback: Date) -> (remaining: Double, resetsAt: Date) {
+        guard let w = window else { return (100, fallback) }
+        let u = w.utilization.isFinite ? w.utilization : 0
+        return (max(0, min(100, 100 - u)), w.resetsAt.flatMap(parseDate) ?? fallback)
+    }
+
+    /// Maps an optional usage window; returns `(nil, nil)` when absent.
+    private func mapOptionalWindow(_ window: WindowUsage?) -> (remaining: Double?, resetsAt: Date?) {
+        guard let w = window else { return (nil, nil) }
+        let u = w.utilization.isFinite ? w.utilization : 0
+        return (max(0, min(100, 100 - u)), w.resetsAt.flatMap(parseDate))
+    }
+
+    private func parseDate(_ s: String) -> Date? {
+        if let d = Self.isoWithFrac.date(from: s) { return d }
+        if let d = Self.isoPlain.date(from: s) { return d }
+        logger.warning("Failed to parse date string: \(s, privacy: .private)")
+        LogService.warning("ViewModel", "Failed to parse ISO 8601 date string (value omitted for privacy)")
+        return nil
     }
 
     private func planName(_ type: String) -> String {

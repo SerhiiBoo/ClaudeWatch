@@ -68,12 +68,6 @@ struct CircularTimerView: View {
     }
 
     private func shortCountdown(_ interval: TimeInterval) -> String {
-        let t = Int(interval)
-        let d = t / 86400
-        let h = (t % 86400) / 3600
-        let m = (t % 3600) / 60
-        if d > 0 { return "\(d)d \(h)h" }
-        if h > 0 { return "\(h)h \(m)m" }
-        return "\(m)m"
+        DurationFormatter.hoursMinutes(from: interval)
     }
 }

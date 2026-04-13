@@ -11,6 +11,8 @@ struct UsageSnapshotView: View {
     private static let darkBackground  = Color(red: 0.15, green: 0.15, blue: 0.16)
     private static let lightBackground = Color(red: 0.98, green: 0.98, blue: 0.98)
 
+    @State private var paceStatus = PaceStatus(pressure: .unknown, pacePerHour: 0, etaHours: nil)
+
     private var cardBackground: Color {
         colorScheme == .dark ? Self.darkBackground : Self.lightBackground
     }
@@ -28,6 +30,15 @@ struct UsageSnapshotView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
         .padding(12) // give shadow room to breathe
+        .onAppear { reloadPaceStatus() }
+        .onChange(of: usage) { _, _ in reloadPaceStatus() }
+    }
+
+    private func reloadPaceStatus() {
+        paceStatus = PaceClassifier.classify(
+            pace: UsageHistoryService.sessionPacePerHour() ?? 0,
+            etaHours: UsageHistoryService.estimatedHoursUntilSessionEmpty(currentRemaining: usage.sessionRemaining)
+        )
     }
 
     // MARK: - Header
@@ -117,26 +128,29 @@ struct UsageSnapshotView: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            if let pace = UsageHistoryService.sessionPacePerHour() {
+            if paceStatus.pressure != .unknown {
                 HStack(spacing: 3) {
                     Image(systemName: "gauge.with.dots.needle.67percent")
                         .font(.system(size: 10))
                         .foregroundStyle(.secondary)
-                    Text(String(format: "%.0f%%/h", pace))
+                    Text(String(format: "%.0f%%/h", paceStatus.pacePerHour))
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                 }
-            }
-            if let hours = UsageHistoryService.estimatedHoursUntilSessionEmpty(
-                currentRemaining: usage.sessionRemaining
-            ) {
                 HStack(spacing: 3) {
-                    Image(systemName: hours >= 5 ? "checkmark.circle.fill" : "clock.fill")
+                    Image(systemName: paceStatus.pressure == .beyondWindow ? "checkmark.circle.fill" : "clock.fill")
                         .font(.system(size: 10))
-                        .foregroundStyle(hours >= 5 ? .green : hours < 1 ? .red : .yellow)
-                    Text(hours >= 5 ? "On track" : String(format: "%.1fh left", hours))
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(paceStatus.pressure == .beyondWindow ? .green
+                                         : paceStatus.pressure == .urgent ? .red : .yellow)
+                    if paceStatus.pressure == .beyondWindow {
+                        Text("On track")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                    } else if let hours = paceStatus.etaHours {
+                        Text(String(format: "%.1fh left", hours))
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
         }

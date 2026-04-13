@@ -15,7 +15,7 @@ import os.log
 ///   it is archived and a fresh file starts. Only one archive is kept.
 /// - On launch, `pruneIfNeeded()` enforces these limits.
 /// - Users can retrieve logs via "Copy Logs" or "Export Logs" in Settings.
-struct LogService {
+enum LogService {
     enum Level: String {
         case info    = "INFO "
         case warning = "WARN "
@@ -114,6 +114,12 @@ struct LogService {
         queue.async {
             rotateIfNeeded()
         }
+    }
+
+    /// Block until all pending log entries have been written to disk.
+    /// Call from `applicationWillTerminate` to avoid losing the final log lines.
+    static func flush() {
+        queue.sync {}
     }
 
     /// Returns all logs prefixed with a system-info header for debugging.
@@ -249,3 +255,5 @@ struct LogService {
         """
     }
 }
+
+extension LogService: Logging {}

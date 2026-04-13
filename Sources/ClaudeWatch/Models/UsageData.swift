@@ -3,7 +3,13 @@ import Foundation
 // MARK: - Notifications
 
 extension Notification.Name {
-    static let usageDidUpdate = Notification.Name("com.local.ClaudeWatch.usageDidUpdate")
+    static let usageDidUpdate = Notification.Name("io.github.SerhiiBoo.ClaudeWatch.usageDidUpdate")
+    static let petPositionDidChange = Notification.Name("io.github.SerhiiBoo.ClaudeWatch.petPositionDidChange")
+    static let petCharacterDidChange = Notification.Name("io.github.SerhiiBoo.ClaudeWatch.petCharacterDidChange")
+    static let petTriggerAnimation = Notification.Name("io.github.SerhiiBoo.ClaudeWatch.petTriggerAnimation")
+    // Mini-game triggers
+    static let petDidLeaveSleep    = Notification.Name("io.github.SerhiiBoo.ClaudeWatch.petDidLeaveSleep")
+    static let miniGameManualTrigger = Notification.Name("io.github.SerhiiBoo.ClaudeWatch.miniGameManualTrigger")
 }
 
 // MARK: - Domain model

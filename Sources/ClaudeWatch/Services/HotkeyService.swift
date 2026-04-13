@@ -4,10 +4,14 @@ import Carbon.HIToolbox
 // MARK: - Notification
 
 extension Notification.Name {
-    static let hotkeyTriggered = Notification.Name("com.local.ClaudeWatch.hotkeyTriggered")
+    static let hotkeyTriggered = Notification.Name("io.github.SerhiiBoo.ClaudeWatch.hotkeyTriggered")
 }
 
 // MARK: - Carbon event handler (free function — required for C function pointer)
+
+/// Module-level constant so the nonisolated C callback can access it without
+/// crossing the `@MainActor` boundary imposed on `HotkeyService`.
+private let hotkeySignature: FourCharCode = 0x43574154  // "CWAT" (ClaudeWATch)
 
 private func hotKeyEventHandler(
     _: EventHandlerCallRef?,
@@ -24,7 +28,7 @@ private func hotKeyEventHandler(
         nil,
         &hkID
     )
-    guard hkID.signature == HotkeyService.signature, hkID.id == 1 else { return noErr }
+    guard hkID.signature == hotkeySignature, hkID.id == 1 else { return noErr }
     DispatchQueue.main.async {
         NotificationCenter.default.post(name: .hotkeyTriggered, object: nil)
     }
@@ -35,11 +39,12 @@ private func hotKeyEventHandler(
 
 /// Registers and manages a single global hotkey using Carbon's RegisterEventHotKey.
 /// Call `updateFromSettings()` after any hotkey setting changes.
+@MainActor
 final class HotkeyService {
     static let shared = HotkeyService()
 
-    /// FourCharCode "CWAT" (ClaudeWATch)
-    static let signature: FourCharCode = 0x43574154
+    /// FourCharCode "CWAT" (ClaudeWATch) — mirrors the module-level `hotkeySignature` constant.
+    static let signature: FourCharCode = hotkeySignature
 
     private var hotKeyRef: EventHotKeyRef?
     private var eventHandlerRef: EventHandlerRef?

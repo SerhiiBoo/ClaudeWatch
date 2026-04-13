@@ -67,17 +67,11 @@ struct UsageSectionView: View {
     // MARK: - Helpers
 
     /// Color reflects severity: green when low usage, red when high
-    private var barColor: Color {
-        switch used {
-        case ..<40:  return .green
-        case 40..<80: return .yellow
-        default:      return .red
-        }
-    }
+    private var barColor: Color { UsageSeverity.color(for: used) }
 
     private var resetLabel: String {
         let timeStr = resetsAt.formatted(date: .omitted, time: .shortened)
-        let countdown = formatCountdown(resetsAt.timeIntervalSinceNow)
+        let countdown = DurationFormatter.hoursMinutes(from: resetsAt.timeIntervalSinceNow)
 
         if Calendar.current.isDateInToday(resetsAt) {
             return "Resets Today, \(timeStr) · \(countdown)"
@@ -86,15 +80,4 @@ struct UsageSectionView: View {
         return "Resets \(dateStr) · \(countdown)"
     }
 
-    private func formatCountdown(_ interval: TimeInterval) -> String {
-        guard interval > 0 else { return "now" }
-        let total = Int(interval)
-        let days    = total / 86_400
-        let hours   = (total % 86_400) / 3_600
-        let minutes = (total % 3_600) / 60
-
-        if days > 0  { return "\(days)d \(hours)h" }
-        if hours > 0 { return "\(hours)h \(minutes)m" }
-        return "\(minutes)m"
-    }
 }

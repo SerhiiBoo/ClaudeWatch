@@ -88,11 +88,5 @@ struct ExtraUsageSectionView: View {
 
     // MARK: - Helpers
 
-    private var barColor: Color {
-        switch data.utilization {
-        case ..<40:  return .green
-        case 40..<80: return .yellow
-        default:      return .red
-        }
-    }
+    private var barColor: Color { UsageSeverity.color(for: data.utilization) }
 }

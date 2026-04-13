@@ -13,9 +13,7 @@ private struct UsageWindow {
 
 /// Sends macOS notifications when usage crosses configurable thresholds,
 /// when limits are reached (100%), and when windows reset.
-struct NotificationService {
-    private static let notifiedKey = "notifiedThresholds"
-
+enum NotificationService {
     static func setup() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
             if let error {
@@ -36,7 +34,8 @@ struct NotificationService {
         let windows = buildWindows(from: usage)
         let previousWindows = previousUsage.map { buildWindows(from: $0) }
 
-        var notified = Set(UserDefaults.standard.stringArray(forKey: notifiedKey) ?? [])
+        let originalNotified = Set(AppSettings.notifiedThresholds)
+        var notified = originalNotified
 
         // 1. Threshold notifications (enriched with pace, ETA, reset time)
         let thresholds = AppSettings.notificationThresholds
@@ -84,7 +83,9 @@ struct NotificationService {
             }
         }
 
-        UserDefaults.standard.set(Array(notified), forKey: notifiedKey)
+        if notified != originalNotified {
+            AppSettings.notifiedThresholds = Array(notified)
+        }
     }
 
     // MARK: - Window construction
@@ -113,29 +114,25 @@ struct NotificationService {
             ),
         ]
         if let sr = usage.sonnetRemaining, let sra = usage.sonnetResetsAt {
+            let sonnetPace = UsageHistoryService.pacePerHour(forOptional: \.sonnetUsed)
             windows.append(UsageWindow(
                 name: "Sonnet",
                 used: 100 - sr,
                 remaining: sr,
                 resetsAt: sra,
-                pacePerHour: UsageHistoryService.pacePerHour(forOptional: \.sonnetUsed),
-                etaHours: sr > 0
-                    ? UsageHistoryService.pacePerHour(forOptional: \.sonnetUsed)
-                        .flatMap { $0 > minimumMeaningfulPacePerHour ? sr / $0 : nil }
-                    : nil
+                pacePerHour: sonnetPace,
+                etaHours: PaceClassifier.classify(pace: sonnetPace ?? 0, etaHours: sr > 0 ? sonnetPace.map { sr / $0 } : nil).etaHours
             ))
         }
         if let or = usage.opusRemaining, let ora = usage.opusResetsAt {
+            let opusPace = UsageHistoryService.pacePerHour(forOptional: \.opusUsed)
             windows.append(UsageWindow(
                 name: "Opus",
                 used: 100 - or,
                 remaining: or,
                 resetsAt: ora,
-                pacePerHour: UsageHistoryService.pacePerHour(forOptional: \.opusUsed),
-                etaHours: or > 0
-                    ? UsageHistoryService.pacePerHour(forOptional: \.opusUsed)
-                        .flatMap { $0 > minimumMeaningfulPacePerHour ? or / $0 : nil }
-                    : nil
+                pacePerHour: opusPace,
+                etaHours: PaceClassifier.classify(pace: opusPace ?? 0, etaHours: or > 0 ? opusPace.map { or / $0 } : nil).etaHours
             ))
         }
         return windows
@@ -148,17 +145,21 @@ struct NotificationService {
         var lines: [String] = []
 
         // Pace info
-        if let pace = window.pacePerHour, pace > minimumMeaningfulPacePerHour {
+        if let pace = window.pacePerHour, pace > PaceClassifier.minimumMeaningfulPacePerHour {
             lines.append(String(format: "Pace: %.0f%%/h", pace))
         }
 
         // ETA to limit (skip if beyond the session window — limit resets first)
         if let eta = window.etaHours {
             let isSessionWindow = window.name == "Session"
-            if isSessionWindow && eta >= 5 {
+            let beyondWindow = isSessionWindow && PaceClassifier.classify(
+                pace: window.pacePerHour ?? 0,
+                etaHours: eta
+            ).pressure == .beyondWindow
+            if beyondWindow {
                 lines.append("Well within limits at this pace")
             } else {
-                lines.append("Limit in ~\(formatDuration(eta))")
+                lines.append("Limit in ~\(DurationFormatter.shortRounded(hours: eta))")
             }
         }
 
@@ -175,7 +176,7 @@ struct NotificationService {
     private static func sendLimitReachedNotification(window: UsageWindow) {
         let body = "\(window.name) limit reached! "
             + "Restores \(formatResetDate(window.resetsAt)) "
-            + "(\(formatCountdown(window.resetsAt)))"
+            + "(\(DurationFormatter.countdown(to: window.resetsAt)))"
 
         sendNotification(title: "Claude \(window.name) Limit Reached", body: body)
     }
@@ -190,13 +191,6 @@ struct NotificationService {
 
     // MARK: - Formatting helpers
 
-    private static func formatDuration(_ hours: Double) -> String {
-        if hours >= 48  { return "\(Int(hours / 24))d" }
-        if hours >= 24  { return "1d \(Int(hours.truncatingRemainder(dividingBy: 24)))h" }
-        if hours >= 1   { return String(format: "%.0fh", hours) }
-        return "\(max(1, Int(hours * 60)))m"
-    }
-
     private static func formatResetDate(_ date: Date) -> String {
         let cal = Calendar.current
         let time = date.formatted(date: .omitted, time: .shortened)
@@ -207,13 +201,6 @@ struct NotificationService {
             return "tomorrow at \(time)"
         }
         return date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute())
-    }
-
-    private static func formatCountdown(_ date: Date) -> String {
-        let interval = date.timeIntervalSinceNow
-        guard interval > 0 else { return "now" }
-        let hours = formatDuration(interval / 3600)
-        return "in \(hours)"
     }
 
     // MARK: - Test
@@ -267,6 +254,10 @@ struct NotificationService {
             content: content,
             trigger: nil
         )
-        UNUserNotificationCenter.current().add(request)
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error {
+                LogService.error("Notifications", "Failed to schedule notification", error: error)
+            }
+        }
     }
 }

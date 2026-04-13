@@ -1,0 +1,676 @@
+extension VariantSpriteData {
+    static let clodeyCat = VariantSpriteData(
+        idle: [
+            parseSprite("""
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBEBBBBEBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBBMMBBCB.
+..BBBBBBBB..
+..BBBBBBBBA.
+..DD.DD..AA.
+..DD.DD...A.
+"""),
+            parseSprite("""
+............
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBEBBBBEBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBBMMBBCB.
+..BBBBBBBB..
+..BBBBBBBBA.
+..DD.DD..AA.
+""")
+        ],
+        happy: [
+            parseSprite("""
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBDBBBBDBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBMMMMBCB.
+..BBBBBBBB..
+..BBBBBBBBA.
+..DD.DD..AA.
+..DD.DD...A.
+"""),
+            parseSprite("""
+............
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBDBBBBDBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBMMMMBCB.
+..BBBBBBBB..
+..BBBBBBBBA.
+..DD.DD..AA.
+"""),
+            parseSprite("""
+SBB......BBS
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBDBBBBDBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBMMMMBCB.
+..BBBBBBBB..
+..BBBBBBBBA.
+..DD.DD..AA.
+..DD.DD...A.
+""")
+        ],
+        tired: [
+            parseSprite("""
+............
+............
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBEBBBBEBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBBMMBBCB.
+..BBBBBBBB..
+..BBBBBBBBA.
+"""),
+            parseSprite("""
+............
+............
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBDBBBBDBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBBMMBBCB.
+..BBBBBBBB..
+..BBBBBBBBA.
+""")
+        ],
+        sleeping: [
+            parseSprite("""
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBDDBBBDDB.
+.BGBBGGBBGB.
+.BBBBBBBBBB.
+.BCBBBBBBCB.
+..BBBBBBBB..
+..BBBBBBBBA.
+..DD.DD..AA.
+..DD.DD...A.
+"""),
+            parseSprite("""
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBDDBBBDDB.
+.BGBBGGBBGB.
+.BBBBBBBBBB.
+.BCBBBBBBCB.
+..BBBBBBBB..
+..BBBBBBBBA.
+..DD.DD..AA.
+..DD.DD...A.
+""")
+        ],
+        excited: [
+            parseSprite("""
+SBB......BBS
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBDBBBBDBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBMMMMBCB.
+..BBBBBBBB..
+..BBBBBBBBA.
+..DD.DD..AA.
+..DD.DD...A.
+"""),
+            parseSprite("""
+SBBB....BBBS
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBDBBBBDBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBMMMMBCB.
+..BBBBBBBB..
+..BBBBBBBBA.
+..DD.DD..AA.
+..DD.DD...A.
+............
+"""),
+            parseSprite("""
+SBB......BBS
+SBBB....BBBS
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBDBBBBDBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBMMMMBCB.
+..BBBBBBBB..
+..BBBBBBBBA.
+..DD.DD..AA.
+..DD.DD...A.
+""")
+        ],
+        critical: [
+            parseSprite("""
+............
+............
+............
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBDBBBBDBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBBMMBBCB.
+..BBBBBBBB..
+"""),
+            parseSprite("""
+............
+............
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBDBBBBDBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBBMMBBCB.
+..BBBBBBBB..
+..BBBBBBBBA.
+""")
+        ],
+        reborn: [
+            parseSprite("""
+S..........S
+............
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBEBBBBEBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBBMMBBCB.
+..BBBBBBBB..
+..BBBBBBBBA.
+"""),
+            parseSprite("""
+S..........S
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBEBBBBEBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBBMMBBCB.
+..BBBBBBBB..
+..BBBBBBBBA.
+..DD.DD..AA.
+"""),
+            parseSprite("""
+SBB......BBS
+SBBB....BBBS
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBDBBBBDBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBMMMMBCB.
+..BBBBBBBB..
+..BBBBBBBBA.
+..DD.DD..AA.
+..DD.DD...A.
+""")
+        ],
+        talking: [
+            parseSprite("""
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBDBBBBDBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBMMMMBCB.
+..BBBBBBBB..
+..BBBBBBBBA.
+..DD.DD..AA.
+..DD.DD...A.
+"""),
+            parseSprite("""
+............
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBDBBBBDBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBMMMMBCB.
+..BBBBBBBB..
+..BBBBBBBBA.
+..DD.DD..AA.
+""")
+        ],
+        peeking: [
+            parseSprite("""
+............
+............
+............
+............
+............
+............
+............
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBEBBBBEBB.
+"""),
+            parseSprite("""
+............
+............
+............
+............
+............
+............
+............
+............
+............
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+""")
+        ],
+        falling: parseSprite("""
+............
+............
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBEBBBBEBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBBMMBBCB.
+..BBBBBBBB..
+..BBBBBBBBA.
+"""),
+        squash: parseSprite("""
+............
+............
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBEBBBBEBB.
+.BCBBMMBBCB.
+..BBBBBBBB..
+..BBBBBBBBA.
+..DD.DD..AA.
+..DD.DD...A.
+"""),
+        leanLeft: parseSprite("""
+BB......BB..
+BBB....BBB..
+BBBBBBBBBB..
+BBBBBBBBBB..
+BBEBBBBEBB..
+BGWBGGBWGB..
+BBBBBBBBBB..
+BCBBMMBBCB..
+.BBBBBBBB...
+.BBBBBBBBA..
+.DD.DD..AA..
+.DD.DD...A..
+"""),
+        leanRight: parseSprite("""
+..BB......BB
+..BBB....BBB
+..BBBBBBBBBB
+..BBBBBBBBBB
+..BBEBBBBEBB
+..BGWBGGBWGB
+..BBBBBBBBBB
+..BCBBMMBBCB
+...BBBBBBBB.
+...BBBBBBBBA
+...DD.DD..AA
+...DD.DD...A
+"""),
+        coding: [
+            parseSprite("""
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBEBBBBEBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBBMMBBCB.
+..BBBBBBBB..
+....BBBBD...
+.........DD.
+............
+"""),
+            parseSprite("""
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBEBBBBEBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBBMMBBCB.
+..BBBBBBBB..
+.DDDDDDDDDD.
+.DDDDDDDDDD.
+.DAAAAAAAAD.
+"""),
+            parseSprite("""
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBDBBBBDBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBBMMBBCB.
+..BBBBBBBB..
+.DDDDDDDDDD.
+.DGGGGGGGGD.
+.DAAAAAAAAD.
+"""),
+            parseSprite("""
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBDBBBBDBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBBMMBBCB.
+..BBBBBBBB..
+.DDDDDDDDDD.
+.DGLGGGGGGD.
+.DAADAAADAD.
+"""),
+            parseSprite("""
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBDBBBBDBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBBMMBBCB.
+..BBBBBBBB..
+.DDDDDDDDDD.
+.DGGGGGLGGD.
+.DADADAADAD.
+"""),
+            parseSprite("""
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBDBBBBDBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBBMMBBCB.
+..BBBBBBBB..
+.DDDDDDDDDD.
+.DGGGGGGGLD.
+.DAADAAADAD.
+"""),
+            parseSprite("""
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBEBBBBEBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBBMMBBCB.
+..BBBBBBBB..
+.DDDDDDDDDD.
+.DDDDDDDDDD.
+.DAAAAAAAAD.
+"""),
+            parseSprite("""
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBEBBBBEBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBBMMBBCB.
+..BBBBBBBB..
+..BBBBBBBBA.
+..DD.DD..AA.
+..DD.DD...A.
+""")
+        ],
+        debugging: [
+            parseSprite("""
+.BB......DD.
+.BBB....BDGD
+.BBBBBBBBDD.
+.BBBBBBBBBB.
+.BBEBBBBEBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBBMMBBCB.
+..BBBBBBBB..
+..BBBBBBBBA.
+..DD.DD..AA.
+..DD.DD...A.
+"""),
+            parseSprite("""
+.BB......DD.
+.BBB....BDGD
+.BBBBBBBBDD.
+.BBBBBBBBBB.
+.BBDBBBBDBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBBMMBBCB.
+..BBBBBBBB..
+..BBBBBBBBA.
+..DD.DD..AA.
+..DD.DD...A.
+"""),
+            parseSprite("""
+.BB......BB.
+.BBB....BDD.
+.BBBBBBBBDGD
+.BBBBBBBBBDD
+.BBEBBBBEBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBBMMBBCB.
+..BBBBBBBB..
+..BBBBBBBBA.
+..DD.DD..AA.
+..DD.DD...A.
+"""),
+            parseSprite("""
+.BB......BS.
+.BBB....B.S.
+.BBBBBBBBSS.
+.BBBBBBBBBB.
+.BBDBBBBDBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBBMMBBCB.
+..BBBBBBBB..
+..BBBBBBBBA.
+..DD.DD..AA.
+..DD.DD...A.
+"""),
+            parseSprite("""
+.BB......BB.
+.BBB....BDD.
+.BBBBBBBBDGD
+.BBBBBBBBBDD
+.BBEBBBBEBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBBMMBBCB.
+..BBBBBBBB..
+..BBBBBBBBA.
+..DD.DD..AA.
+..DD.DD...A.
+"""),
+            parseSprite("""
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBEBBBBEBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBBMMBBCB.
+..BBBBBBBB..
+..BBBBBBBBA.
+..DD.DD..AA.
+..DD.DD...A.
+""")
+        ],
+        compiling: [
+            parseSprite("""
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBEBBBBEBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBBMMBBCB.
+..BBBBBBBB..
+.DDDDDDDDDD.
+.D........D.
+............
+"""),
+            parseSprite("""
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBEBBBBEBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBBMMBBCB.
+..BBBBBBBB..
+.DDDDDDDDDD.
+.DGG......D.
+............
+"""),
+            parseSprite("""
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBEBBBBEBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBBMMBBCB.
+..BBBBBBBB..
+.DDDDDDDDDD.
+.DGGGG....D.
+............
+"""),
+            parseSprite("""
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBEBBBBEBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBBMMBBCB.
+..BBBBBBBB..
+.DDDDDDDDDD.
+.DGGGGGG..D.
+............
+"""),
+            parseSprite("""
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBEBBBBEBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBBMMBBCB.
+..BBBBBBBB..
+.DDDDDDDDDD.
+.DGGGGGGGGD.
+............
+"""),
+            parseSprite("""
+.BB......BB.
+.BBB....BBB.
+.BBBBBBBBBB.
+.BBBBBBBBBB.
+.BBEBBBBEBB.
+.BGWBGGBWGB.
+.BBBBBBBBBB.
+.BCBMMMMBCB.
+..BBBBBBBB..
+.LLLLLLLLLL.
+.LGGGGGGGGL.
+............
+""")
+        ],
+        durations: [
+            .idle:     0.8,
+            .happy:    0.4,
+            .tired:    1.0,
+            .sleeping: 1.2,
+            .excited:  0.3,
+            .critical: 1.0,
+            .reborn:   0.5,
+            .talking:  0.4,
+            .peeking:  0.6,
+            .falling:  0.5,
+            .squash:   0.5,
+            .leanLeft: 0.5,
+            .leanRight: 0.5,
+            .coding:   0.3,
+            .debugging: 0.35,
+            .compiling: 0.45
+        ]
+    )
+}

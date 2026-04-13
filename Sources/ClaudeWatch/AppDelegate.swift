@@ -7,7 +7,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var popover: NSPopover!
     private var eventMonitor: Any?
     private var hotkeyObserver: Any?
-    let viewModel = UsageViewModel()
+    private var petPositionObserver: Any?
+    private var usageObserver: Any?
+    private(set) var viewModel = UsageViewModel()
+    private(set) var petService = NotchPetService()
+    private var petWindow: NotchPetWindow?
+    private var miniGameWindow: MiniGameWindow?
+    private var miniGameObservers: [Any] = []
+    private var activityMonitor: SystemActivityMonitor?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -15,24 +22,95 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NotificationService.setup()
         setupStatusItem()
         setupPopover()
-        viewModel.startAutoRefresh()
         setupHotkey()
+        setupPet()          // attach before startAutoRefresh so no update is lost
+        setupActivityMonitor()
+        viewModel.startAutoRefresh()
+        setupMiniGame()
         // Keep status bar icon in sync
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(usageDidChange),
-            name: .usageDidUpdate,
-            object: nil
-        )
+        usageObserver = NotificationCenter.default.addObserver(
+            forName: .usageDidUpdate,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.updateStatusBar() }
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         if let observer = hotkeyObserver {
             NotificationCenter.default.removeObserver(observer)
         }
+        if let observer = petPositionObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        if let observer = usageObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        miniGameObservers.forEach { NotificationCenter.default.removeObserver($0) }
+        miniGameWindow?.close()
+        petWindow?.hide()
+        activityMonitor?.invalidate()
+        activityMonitor = nil
+        LogService.flush()
     }
 
     // MARK: - Setup
+
+    private func setupActivityMonitor() {
+        activityMonitor = SystemActivityMonitor(
+            onPause:  { [weak self] in self?.viewModel.pauseAutoRefresh() },
+            onResume: { [weak self] in self?.viewModel.resumeAutoRefresh() }
+        )
+    }
+
+    private func setupPet() {
+        petService.attach(to: viewModel)
+        petWindow = NotchPetWindow(petService: petService)
+
+        // Show notch overlay if enabled
+        if petService.isEnabled {
+            petWindow?.show()
+        }
+
+        // Listen for position/size changes from settings
+        petPositionObserver = NotificationCenter.default.addObserver(
+            forName: .petPositionDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                if !self.petService.isEnabled {
+                    self.petWindow?.hide()
+                } else {
+                    self.petWindow?.show()
+                    self.petWindow?.updatePosition()
+                }
+            }
+        }
+
+    }
+
+    private func setupMiniGame() {
+        let nc = NotificationCenter.default
+        miniGameObservers = [
+            nc.addObserver(forName: .petDidLeaveSleep, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor [weak self] in self?.miniGameOrCreate().gameService.notifyRateLimitLifted() }
+            },
+            nc.addObserver(forName: .miniGameManualTrigger, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor [weak self] in self?.miniGameOrCreate().show(triggeredBy: .manual) }
+            }
+        ]
+    }
+
+    /// Returns the existing MiniGameWindow, creating it on first use.
+    private func miniGameOrCreate() -> MiniGameWindow {
+        if let w = miniGameWindow { return w }
+        let w = MiniGameWindow()
+        miniGameWindow = w
+        return w
+    }
 
     private func setupHotkey() {
         HotkeyService.shared.updateFromSettings()
@@ -61,6 +139,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover.contentViewController = NSHostingController(
             rootView: PopoverView()
                 .environmentObject(viewModel)
+                .environmentObject(petService)
         )
     }
 
@@ -72,14 +151,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } else if let button = statusItem.button {
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
             popover.contentViewController?.view.window?.makeKey()
-            if viewModel.isStale { viewModel.refresh() }
             startEventMonitor()
         }
     }
 
     private func closePopover() {
+        guard popover.isShown else { return }
         popover.performClose(nil)
         stopEventMonitor()
+        // Apply any title update that was deferred while the popover was open.
+        statusItem?.button?.title = menuBarTitle()
     }
 
     private func startEventMonitor() {
@@ -87,8 +168,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         eventMonitor = NSEvent.addGlobalMonitorForEvents(
             matching: [.leftMouseDown, .rightMouseDown]
         ) { [weak self] _ in
-            guard let self, self.popover.isShown else { return }
-            DispatchQueue.main.async { self.closePopover() }
+            Task { @MainActor [weak self] in
+                guard let self, self.popover.isShown else { return }
+                self.closePopover()
+            }
         }
     }
 
@@ -97,10 +180,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSEvent.removeMonitor(monitor)
             eventMonitor = nil
         }
-    }
-
-    @objc private func usageDidChange() {
-        updateStatusBar()
     }
 
     // MARK: - Status bar
@@ -113,7 +192,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return extras.reduce(base) { min($0, $1) }
         }
         button.image = statusIcon(remaining: remaining)
-        button.title = menuBarTitle()
+        // Skip title update while the popover is shown — changing the title
+        // resizes the variableLength status item, shifting the button frame and
+        // causing NSPopover to appear mispositioned (jumps to the left).
+        if !popover.isShown {
+            button.title = menuBarTitle()
+        }
     }
 
     private func menuBarTitle() -> String {
@@ -129,7 +213,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .sessionAndWeekly:
             return " S:\(Int(100 - u.sessionRemaining))% W:\(Int(100 - u.weeklyRemaining))%"
         case .pace:
-            if let pace = UsageHistoryService.sessionPacePerHour(), pace > minimumMeaningfulPacePerHour {
+            if let pace = UsageHistoryService.sessionPacePerHour(), pace > PaceClassifier.minimumMeaningfulPacePerHour {
                 return String(format: " %.0f%%/h", pace)
             }
             return ""

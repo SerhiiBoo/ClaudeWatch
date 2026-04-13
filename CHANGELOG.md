@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-04-13
+
+### Added
+
+- Notch pet system — animated sprite characters (Bytie, Clodey, Ghosty, Sprout) live in the macOS notch with moods, movements, and speech bubbles
+- Per-pet variant skins selectable in Settings
+- Chattiness preference controlling how often the pet speaks
+- Mini-game accessible from the popover
+- Terminal / IDE launcher with configurable app picker (iTerm2, Warp, Ghostty, VS Code, Cursor, and more)
+- System activity monitor powering pet idle detection and mood transitions
+- Unit test suite (`Tests/ClaudeWatchTests/`) — 153 tests across API parsing, pace classification, usage history, notifications, and view-model logic
+- Protocol-based dependency injection for core services (`CredentialsLoading`, `Logging`, `UsageFetching`, `UsageHistoryStoring`)
+
+### Changed
+
+- `SettingsView` decomposed into focused section files: General, Notifications, Hotkeys, Terminal, Visible Sections, Diagnostics
+- `PopoverView` split into reusable subviews (`SessionEstimateRow`, `UsageSectionsStack`, `PopoverFooterRow`, `PopoverRateLimitBanner`, `PlanStreakRow`)
+- Shared UI helpers extracted to `Views/Shared/` and general utilities to `Utilities/`
+- Pace classification moved into a dedicated `PaceClassifier` service
+
 ## [1.2.0] - 2026-04-08
 
 ### Added

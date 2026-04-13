@@ -1,0 +1,125 @@
+/* ClaudeWatch — English (Base) Localization
+   This file is the source of truth for all user-visible strings.
+   Translators: copy this file into your language's .lproj folder
+   and replace the right-hand side values only. */
+
+// MARK: - Popover
+
+"popover.title" = "Claude Usage";
+"popover.no_data" = "No data";
+"popover.tap_to_retry" = "Tap refresh to retry.";
+"popover.stale_data" = "Stale data";
+"popover.waiting_rate_limit" = "Waiting for rate limit to lift before loading data.";
+
+// MARK: - Popover — Rate Limit Banner
+
+"popover.rate_limit.lifted" = "Rate limit lifted · refreshing\u{2026}";
+"popover.rate_limit.retrying" = "API rate limited · retrying in %@";
+"popover.rate_limit.note" = "This is the usage API, not your Claude quota";
+"popover.rate_limit.play_game" = "Play Token Rush";
+
+// MARK: - Popover — Session Estimate Row
+
+"popover.session_estimate.left" = "left";
+"popover.session_estimate.within_limits" = "Well within session limits";
+"popover.session_estimate.limit_in" = "Session limit in ~%@";
+
+// MARK: - Popover — Usage Sections
+
+"popover.sparkline.projected_session" = "Projected session usage";
+
+// MARK: - Settings — Title
+
+"settings.title" = "Settings";
+"settings.credentials_hint" = "Credentials read from Keychain. Run `claude` to refresh.";
+
+// MARK: - Settings — General
+
+"settings.general.title" = "General";
+"settings.general.subtitle" = "App behavior, refresh frequency, and display density.";
+"settings.general.launch_at_login" = "Launch at Login";
+"settings.general.auto_refresh" = "Auto-refresh";
+"settings.general.compact_mode" = "Compact mode";
+"settings.general.appearance" = "Appearance";
+"settings.general.menu_bar" = "Menu bar";
+"settings.general.menu_bar_icon" = "Menu bar icon";
+
+// MARK: - Settings — Hotkeys
+
+"settings.hotkeys.title" = "Hotkeys";
+"settings.hotkeys.subtitle" = "Global keyboard shortcut to show or hide the ClaudeWatch popover from anywhere.";
+"settings.hotkeys.enable" = "Enable hotkey";
+"settings.hotkeys.shortcut" = "Shortcut";
+"settings.hotkeys.hint" = "Default: ⌘⇧W — click the field and press a new combination to change";
+
+// MARK: - Settings — Visible Sections
+
+"settings.visible_sections.title" = "Visible Sections";
+"settings.visible_sections.subtitle" = "Show or hide individual widget sections.";
+"settings.visible_sections.session_estimate" = "Session limit estimate";
+"settings.visible_sections.sparkline_charts" = "Sparkline charts";
+"settings.visible_sections.quick_actions" = "Quick actions";
+
+// MARK: - Settings — Charts & Pace
+
+"settings.charts_pace.title" = "Charts & Pace";
+"settings.charts_pace.subtitle" = "How much history to show in charts and how far back to calculate your usage rate. Data is only collected while the app is running.";
+"settings.charts_pace.sparkline_window" = "Sparkline window";
+"settings.charts_pace.pace_lookback" = "Pace lookback";
+
+// MARK: - Settings — Notifications
+
+"settings.notifications.title" = "Notifications";
+"settings.notifications.subtitle" = "macOS alerts when session, weekly, Sonnet, or Opus usage crosses a threshold.";
+"settings.notifications.usage_alerts" = "Usage alerts";
+"settings.notifications.thresholds" = "Thresholds";
+"settings.notifications.presets" = "Presets:";
+"settings.notifications.send_test" = "Send Test Notifications";
+
+// MARK: - Settings — Terminal / IDE
+
+"settings.terminal.title" = "Terminal / IDE";
+"settings.terminal.subtitle" = "Which app to launch when you tap the quick action button. Requires Automation permission on first use.";
+"settings.terminal.open_in" = "Open in";
+"settings.terminal.working_directory" = "Working directory";
+"settings.terminal.choose" = "Choose\u{2026}";
+"settings.terminal.choose_folder_prompt" = "Select";
+"settings.terminal.choose_folder_message" = "Choose the folder to open in your terminal or IDE";
+
+// MARK: - Settings — Diagnostics
+
+"settings.diagnostics.title" = "Diagnostics";
+"settings.diagnostics.subtitle" = "Error logs for troubleshooting. Logs auto-rotate at 500 KB.";
+"settings.diagnostics.copy_logs" = "Copy Logs";
+"settings.diagnostics.export_logs" = "Export Logs";
+"settings.diagnostics.clear" = "Clear";
+"settings.diagnostics.logs_cleared" = "Logs cleared";
+
+// MARK: - Settings — Notch Pet
+
+"settings.pet.title" = "Notch Pet";
+"settings.pet.subtitle" = "A tiny companion that lives near the notch and reacts to your Claude usage. Click to poke!";
+"settings.pet.enable" = "Enable pet";
+"settings.pet.chattiness" = "Chattiness";
+"settings.pet.position" = "Position";
+"settings.pet.size" = "Size";
+"settings.pet.wellness_reminders" = "Wellness reminders";
+
+// MARK: - Mini Game — Token Rush
+
+"game.title" = "TOKEN RUSH";
+"game.instructions.catch_tokens" = "Catch the tokens!";
+"game.instructions.dodge_blocks" = "Dodge the red blocks.";
+"game.instructions.controls" = "\u{2190} \u{2192} arrows  or  tap to move";
+"game.game_over" = "GAME OVER";
+"game.score" = "Score: %d";
+"game.new_high_score" = "NEW HIGH SCORE!";
+
+// MARK: - Extra Usage
+
+"extra_usage.title" = "Extra usage";
+"extra_usage.monthly_spend_limit" = "Monthly spend limit";
+
+// MARK: - Shared
+
+"app.name" = "Claude Watch";

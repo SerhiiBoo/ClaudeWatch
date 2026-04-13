@@ -4,7 +4,9 @@ import AppKit
 /// Quick action buttons: open Claude Code terminal, copy usage summary, share screenshot.
 struct QuickActionsRow: View {
     let usage: UsageData?
+    let paceStatus: PaceStatus?
     @State private var copied = false
+    @State private var copyResetTask: Task<Void, Never>?
 
     private var openLabel: String {
         let app = AppSettings.terminalApp
@@ -27,11 +29,13 @@ struct QuickActionsRow: View {
                 copyUsageSummary()
             }
             .help(copied ? "Copied!" : "Copy usage summary")
+            .accessibilityLabel(copied ? "Copied" : "Copy usage summary")
 
             ActionButton(label: nil, icon: "square.and.arrow.up", style: .secondary, disabled: usage == nil) {
                 shareScreenshot()
             }
             .help("Share screenshot")
+            .accessibilityLabel("Share screenshot")
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -40,29 +44,10 @@ struct QuickActionsRow: View {
     // MARK: - Open terminal
 
     private func openClaudeCode() {
-        guard let command = AppSettings.terminalApp.shellLaunchCommand(
-            directory: AppSettings.terminalWorkingDirectory
-        ) else { return }
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/sh")
-        process.arguments = ["-c", command]
-        do {
-            try process.run()
-        } catch {
-            let displayName = AppSettings.terminalApp.displayName
-            guard !displayName.isEmpty else {
-                LogService.log(.error, category: "QuickActionsRow", "Primary launch failed and terminal display name is empty; cannot fall back", details: ["error": "\(error)"])
-                return
-            }
-            let fallback = Process()
-            fallback.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-            fallback.arguments = ["-a", displayName]
-            do {
-                try fallback.run()
-            } catch let fallbackError {
-                LogService.log(.error, category: "QuickActionsRow", "Fallback launch of '\(displayName)' also failed", details: ["error": "\(fallbackError)"])
-            }
-        }
+        TerminalLauncher.open(
+            path: AppSettings.terminalWorkingDirectory,
+            app: AppSettings.terminalApp
+        )
     }
 
     // MARK: - Copy summary
@@ -83,21 +68,32 @@ struct QuickActionsRow: View {
         lines.append("")
         lines.append("📋 Plan      \(u.plan)")
 
-        if let pace = UsageHistoryService.sessionPacePerHour() {
-            lines.append(String(format: "🏃 Pace      %.0f%%/h", pace))
-        }
-        if let hours = UsageHistoryService.estimatedHoursUntilSessionEmpty(currentRemaining: u.sessionRemaining) {
-            if hours >= 5 {
+        let status = paceStatus ?? PaceClassifier.classify(
+            pace: UsageHistoryService.sessionPacePerHour() ?? 0,
+            etaHours: UsageHistoryService.estimatedHoursUntilSessionEmpty(currentRemaining: u.sessionRemaining)
+        )
+        if status.pressure != .unknown {
+            lines.append(String(format: "🏃 Pace      %.0f%%/h", status.pacePerHour))
+            switch status.pressure {
+            case .beyondWindow:
                 lines.append("✅ ETA       Well within session limits")
-            } else {
-                lines.append(String(format: "⏱ ETA       %.1fh until session limit", hours))
+            case .comfortable, .watch, .urgent:
+                if let hours = status.etaHours {
+                    lines.append(String(format: "⏱ ETA       %.1fh until session limit", hours))
+                }
+            case .unknown:
+                break
             }
         }
 
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(lines.joined(separator: "\n"), forType: .string)
         copied = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copied = false }
+        copyResetTask?.cancel()
+        copyResetTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(1500))
+            copied = false
+        }
     }
 
     private func usageLine(remaining: Double) -> String {

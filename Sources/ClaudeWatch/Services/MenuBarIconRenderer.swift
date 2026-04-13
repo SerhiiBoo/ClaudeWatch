@@ -34,6 +34,25 @@ enum MenuBarIconRenderer {
 
     private static var sparkleColor: NSColor { .labelColor }
 
+    /// Strokes a single arc segment using NSBezierPath.
+    private static func strokeArc(
+        center: NSPoint,
+        radius: CGFloat,
+        lineWidth: CGFloat,
+        startAngle: CGFloat,
+        endAngle: CGFloat,
+        clockwise: Bool,
+        color: NSColor
+    ) {
+        let path = NSBezierPath()
+        path.appendArc(withCenter: center, radius: radius,
+                       startAngle: startAngle, endAngle: endAngle, clockwise: clockwise)
+        path.lineWidth = lineWidth
+        path.lineCapStyle = .round
+        color.setStroke()
+        path.stroke()
+    }
+
     private static func makeStar(center: NSPoint, size: CGFloat) -> NSBezierPath {
         let cx = center.x, cy = center.y
         let sc = size * 0.25
@@ -83,24 +102,15 @@ enum MenuBarIconRenderer {
             let endAngle: CGFloat = startAngle - totalSweep
 
             // Track
-            let trackPath = NSBezierPath()
-            trackPath.appendArc(withCenter: NSPoint(x: cx, y: cy), radius: radius,
-                                startAngle: startAngle, endAngle: endAngle, clockwise: true)
-            trackPath.lineWidth = lineW
-            trackPath.lineCapStyle = .round
-            track.setStroke()
-            trackPath.stroke()
+            let center = NSPoint(x: cx, y: cy)
+            strokeArc(center: center, radius: radius, lineWidth: lineW,
+                      startAngle: startAngle, endAngle: endAngle, clockwise: true, color: track)
 
             // Filled arc
             let fillEnd = startAngle - totalSweep * fraction
             if fraction > 0.01 {
-                let fillPath = NSBezierPath()
-                fillPath.appendArc(withCenter: NSPoint(x: cx, y: cy), radius: radius,
-                                   startAngle: startAngle, endAngle: fillEnd, clockwise: true)
-                fillPath.lineWidth = lineW
-                fillPath.lineCapStyle = .round
-                color.setStroke()
-                fillPath.stroke()
+                strokeArc(center: center, radius: radius, lineWidth: lineW,
+                          startAngle: startAngle, endAngle: fillEnd, clockwise: true, color: color)
             }
 
             // Needle from center toward fill endpoint
@@ -142,22 +152,13 @@ enum MenuBarIconRenderer {
             let outerMax: CGFloat = 270
             let outerSweep = outerMax * fraction
 
-            let outerTrack = NSBezierPath()
-            outerTrack.appendArc(withCenter: NSPoint(x: cx, y: cy), radius: outerR,
-                                 startAngle: 90, endAngle: 90 - outerMax, clockwise: true)
-            outerTrack.lineWidth = outerW
-            outerTrack.lineCapStyle = .round
-            track.setStroke()
-            outerTrack.stroke()
+            let sparkCenter = NSPoint(x: cx, y: cy)
+            strokeArc(center: sparkCenter, radius: outerR, lineWidth: outerW,
+                      startAngle: 90, endAngle: 90 - outerMax, clockwise: true, color: track)
 
             if outerSweep > 0 {
-                let outerFill = NSBezierPath()
-                outerFill.appendArc(withCenter: NSPoint(x: cx, y: cy), radius: outerR,
-                                    startAngle: 90, endAngle: 90 - outerSweep, clockwise: true)
-                outerFill.lineWidth = outerW
-                outerFill.lineCapStyle = .round
-                color.setStroke()
-                outerFill.stroke()
+                strokeArc(center: sparkCenter, radius: outerR, lineWidth: outerW,
+                          startAngle: 90, endAngle: 90 - outerSweep, clockwise: true, color: color)
             }
 
             // Inner arc: 200° max
@@ -166,22 +167,12 @@ enum MenuBarIconRenderer {
             let innerMax: CGFloat = 200
             let innerSweep = innerMax * fraction
 
-            let innerTrack = NSBezierPath()
-            innerTrack.appendArc(withCenter: NSPoint(x: cx, y: cy), radius: innerR,
-                                 startAngle: 0, endAngle: innerMax, clockwise: false)
-            innerTrack.lineWidth = innerW
-            innerTrack.lineCapStyle = .round
-            track.setStroke()
-            innerTrack.stroke()
+            strokeArc(center: sparkCenter, radius: innerR, lineWidth: innerW,
+                      startAngle: 0, endAngle: innerMax, clockwise: false, color: track)
 
             if innerSweep > 0 {
-                let innerFill = NSBezierPath()
-                innerFill.appendArc(withCenter: NSPoint(x: cx, y: cy), radius: innerR,
-                                    startAngle: 0, endAngle: innerSweep, clockwise: false)
-                innerFill.lineWidth = innerW
-                innerFill.lineCapStyle = .round
-                color.setStroke()
-                innerFill.stroke()
+                strokeArc(center: sparkCenter, radius: innerR, lineWidth: innerW,
+                          startAngle: 0, endAngle: innerSweep, clockwise: false, color: color)
             }
 
             // 4-point star sparkle
@@ -205,24 +196,15 @@ enum MenuBarIconRenderer {
             let track = color.withAlphaComponent(0.2)
 
             // Full track ring
-            let trackPath = NSBezierPath()
-            trackPath.appendArc(withCenter: NSPoint(x: cx, y: cy), radius: radius,
-                                startAngle: 90, endAngle: -270, clockwise: true)
-            trackPath.lineWidth = lineW
-            trackPath.lineCapStyle = .round
-            track.setStroke()
-            trackPath.stroke()
+            let ringCenter = NSPoint(x: cx, y: cy)
+            strokeArc(center: ringCenter, radius: radius, lineWidth: lineW,
+                      startAngle: 90, endAngle: -270, clockwise: true, color: track)
 
             // Fill arc
             let sweep = 360.0 * fraction
             if sweep > 0.5 {
-                let fillPath = NSBezierPath()
-                fillPath.appendArc(withCenter: NSPoint(x: cx, y: cy), radius: radius,
-                                   startAngle: 90, endAngle: 90 - sweep, clockwise: true)
-                fillPath.lineWidth = lineW
-                fillPath.lineCapStyle = .round
-                color.setStroke()
-                fillPath.stroke()
+                strokeArc(center: ringCenter, radius: radius, lineWidth: lineW,
+                          startAngle: 90, endAngle: 90 - sweep, clockwise: true, color: color)
             }
 
             // Endpoint sparkle (4-point star)

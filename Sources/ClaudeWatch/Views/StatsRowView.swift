@@ -4,14 +4,12 @@ import SwiftUI
 struct StatsRowView: View {
     let usage: UsageData
 
-    private var streak: Int { UsageHistoryService.currentStreak() }
-    private var pacePerHour: Double? { UsageHistoryService.sessionPacePerHour() }
-    private var hoursUntilEmpty: Double? {
-        UsageHistoryService.estimatedHoursUntilSessionEmpty(currentRemaining: usage.sessionRemaining)
-    }
+    @State private var streak: Int = 0
+    @State private var paceStatus = PaceStatus(pressure: .unknown, pacePerHour: 0, etaHours: nil)
 
     var body: some View {
-        HStack(spacing: 12) {
+        let status = paceStatus
+        return HStack(spacing: 12) {
             // Streak
             statBadge(
                 icon: "flame.fill",
@@ -21,28 +19,26 @@ struct StatsRowView: View {
             )
 
             // Pace indicator
-            if let pace = pacePerHour {
+            if status.pressure != .unknown {
                 statBadge(
-                    icon: paceIcon(pace),
-                    color: paceColor(pace),
-                    value: String(format: "%.0f%%/h", pace),
+                    icon: PaceClassifier.rawPaceIcon(status.pacePerHour),
+                    color: PaceClassifier.rawPaceColor(status.pacePerHour),
+                    value: String(format: "%.0f%%/h", status.pacePerHour),
                     label: "pace"
                 )
             }
 
-            // Time until empty (only meaningful within the 5h session window)
-            if let hours = hoursUntilEmpty {
-                if hours >= 5 {
-                    statBadge(
-                        icon: "checkmark.seal.fill",
-                        color: .green,
-                        value: "OK",
-                        label: "session"
-                    )
-                } else {
+            // Session ETA badge
+            switch status.pressure {
+            case .unknown:
+                EmptyView()
+            case .beyondWindow:
+                statBadge(icon: "checkmark.seal.fill", color: .green, value: "OK", label: "session")
+            case .comfortable, .watch, .urgent:
+                if let hours = status.etaHours {
                     statBadge(
                         icon: "hourglass",
-                        color: hours < 1 ? .red : hours < 2 ? .yellow : .green,
+                        color: status.pressure == .urgent ? .red : status.pressure == .watch ? .yellow : .green,
                         value: formatEstimate(hours),
                         label: "left"
                     )
@@ -53,6 +49,16 @@ struct StatsRowView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
+        .onAppear { reloadStats() }
+        .onChange(of: usage) { _, _ in reloadStats() }
+    }
+
+    private func reloadStats() {
+        streak = UsageHistoryService.currentStreak()
+        paceStatus = PaceClassifier.classify(
+            pace: UsageHistoryService.sessionPacePerHour() ?? 0,
+            etaHours: UsageHistoryService.estimatedHoursUntilSessionEmpty(currentRemaining: usage.sessionRemaining)
+        )
     }
 
     private func statBadge(icon: String, color: Color, value: String, label: String) -> some View {
@@ -71,25 +77,7 @@ struct StatsRowView: View {
         }
     }
 
-    private func paceIcon(_ pace: Double) -> String {
-        switch pace {
-        case 20...:  return "hare.fill"          // burning fast
-        case 10..<20: return "figure.walk"        // moderate
-        default:      return "tortoise.fill"      // chill
-        }
-    }
-
-    private func paceColor(_ pace: Double) -> Color {
-        switch pace {
-        case 20...:  return .red
-        case 10..<20: return .yellow
-        default:      return .green
-        }
-    }
-
     private func formatEstimate(_ hours: Double) -> String {
-        if hours >= 24 { return "\(Int(hours / 24))d" }
-        if hours >= 1  { return String(format: "%.1fh", hours) }
-        return "\(Int(hours * 60))m"
+        DurationFormatter.short(hours: hours)
     }
 }

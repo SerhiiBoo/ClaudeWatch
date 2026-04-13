@@ -6,7 +6,7 @@ private let logger = Logger(subsystem: "io.github.SerhiiBoo.ClaudeWatch", catego
 enum APIError: LocalizedError {
     case invalidResponse
     case rateLimited(retryAfter: Date?)
-    case httpError(Int, String?)
+    case httpError(Int)
     case decodingFailed(String)
 
     var errorDescription: String? {
@@ -15,7 +15,7 @@ enum APIError: LocalizedError {
             return "Invalid server response."
         case .rateLimited:
             return "Rate limited by Anthropic API."
-        case .httpError(let code, _):
+        case .httpError(let code):
             return "HTTP \(code). Please try again."
         case .decodingFailed(let detail):
             return "Could not parse response: \(detail)"
@@ -23,8 +23,9 @@ enum APIError: LocalizedError {
     }
 }
 
-struct APIService {
+enum APIService {
     private static let usageEndpoint = URL(string: "https://api.anthropic.com/api/oauth/usage")!
+    private static let decoder = JSONDecoder()
 
     static func fetchUsage(token: String) async throws -> UsageAPIResponse {
         var request = URLRequest(url: usageEndpoint, timeoutInterval: 10)
@@ -46,13 +47,13 @@ struct APIService {
         guard http.statusCode == 200 else {
             let body = String(data: data, encoding: .utf8).map { sanitizeForLog($0) }
             logger.error("HTTP \(http.statusCode): \(body ?? "<empty>", privacy: .private)")
-            throw APIError.httpError(http.statusCode, body)
+            throw APIError.httpError(http.statusCode)
         }
 
-        logger.debug("Raw usage response: \(String(data: data, encoding: .utf8) ?? "<non-UTF8>", privacy: .private)")
+        logger.debug("Raw usage response: \(sanitizeForLog(String(data: data, encoding: .utf8) ?? "<non-UTF8>"), privacy: .private)")
 
         do {
-            return try JSONDecoder().decode(UsageAPIResponse.self, from: data)
+            return try decoder.decode(UsageAPIResponse.self, from: data)
         } catch {
             let raw = String(data: data, encoding: .utf8) ?? "<non-UTF8>"
             logger.error("Decoding failed. Raw response: \(raw, privacy: .private)")
@@ -85,7 +86,7 @@ struct APIService {
         return result
     }
 
-    private static func parseRetryAfter(_ value: String?) -> Date? {
+    static func parseRetryAfter(_ value: String?) -> Date? {
         guard let value else { return nil }
         // Integer seconds
         if let seconds = TimeInterval(value) {
@@ -98,3 +99,5 @@ struct APIService {
         return fmt.date(from: value)
     }
 }
+
+extension APIService: UsageFetching {}

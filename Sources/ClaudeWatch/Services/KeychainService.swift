@@ -23,7 +23,7 @@ enum KeychainError: LocalizedError {
     }
 }
 
-struct KeychainService {
+enum KeychainService {
     private static let serviceName = "Claude Code-credentials"
 
     static func loadCredentials() throws -> ClaudeCredentials {
@@ -58,3 +58,5 @@ struct KeychainService {
         return ClaudeCredentials(accessToken: token, subscriptionType: sub)
     }
 }
+
+extension KeychainService: CredentialsLoading {}

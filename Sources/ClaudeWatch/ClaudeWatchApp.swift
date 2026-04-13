@@ -8,8 +8,9 @@ struct ClaudeWatchApp: App {
         // No main window – the app lives in the menu bar only.
         // Settings scene provides a way to open settings via Cmd+, if needed.
         Settings {
-            SettingsView(onDismiss: {})
+            SettingsView(onDismiss: { NSApp.keyWindow?.close() })
                 .environmentObject(appDelegate.viewModel)
+                .environmentObject(appDelegate.petService)
         }
     }
 }

@@ -1,6 +1,5 @@
 import Foundation
 import Carbon.HIToolbox
-import SwiftUI
 
 /// Centralized, UserDefaults-backed settings for all configurable options.
 /// Each property auto-persists on write. Read once at init from UserDefaults.
@@ -10,9 +9,11 @@ struct AppSettings {
     // MARK: - Named constants
 
     static let defaultNotificationThresholds: [Double] = [50, 80, 90]
-    static let appearanceModeKey = "appearanceMode"
+    static let appearanceModeKey = Key.appearanceMode.rawValue
     static let appVersion: String = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
     static let defaultRefreshInterval: TimeInterval = 120
+    /// Seconds of user inactivity after which periodic timer fetches are skipped.
+    static let idleFetchThreshold: TimeInterval = 600
     /// Default Carbon modifier flags: cmdKey | shiftKey.
     static let defaultHotkeyModifiers = UInt32(cmdKey) | UInt32(shiftKey)
 
@@ -35,6 +36,15 @@ struct AppSettings {
         case globalHotkeyKeyCode
         case globalHotkeyModifiers
         case refreshInterval
+        case petEnabled
+        case petCharacter
+        case petVariant
+        case petChattiness
+        case petPosition
+        case petSize
+        case petWellnessReminders
+        case miniGameHighScore
+        case notifiedThresholds
     }
 
     // MARK: - Appearance
@@ -99,14 +109,8 @@ struct AppSettings {
 
     // MARK: - Terminal app
     static var terminalApp: TerminalApp {
-        get {
-            guard let raw = defaults.string(forKey: Key.terminalApp.rawValue),
-                  let app = TerminalApp(rawValue: raw) else {
-                return .terminal
-            }
-            return app
-        }
-        set { defaults.set(newValue.rawValue, forKey: Key.terminalApp.rawValue) }
+        get { rawEnum(.terminalApp, default: .terminal) }
+        set { setRawEnum(.terminalApp, newValue) }
     }
 
     // MARK: - Terminal working directory
@@ -123,14 +127,8 @@ struct AppSettings {
 
     // MARK: - Menu bar icon
     static var menuBarIcon: MenuBarIcon {
-        get {
-            guard let raw = defaults.string(forKey: Key.menuBarIcon.rawValue),
-                  let icon = MenuBarIcon(rawValue: raw) else {
-                return .gauge
-            }
-            return icon
-        }
-        set { defaults.set(newValue.rawValue, forKey: Key.menuBarIcon.rawValue) }
+        get { rawEnum(.menuBarIcon, default: .gauge) }
+        set { setRawEnum(.menuBarIcon, newValue) }
     }
 
     // MARK: - Global hotkey
@@ -167,220 +165,95 @@ struct AppSettings {
         set { defaults.set(newValue, forKey: Key.refreshInterval.rawValue) }
     }
 
+    // MARK: - Pet settings
+
+    static var petEnabled: Bool {
+        get { defaults.object(forKey: Key.petEnabled.rawValue) as? Bool ?? true }
+        set { defaults.set(newValue, forKey: Key.petEnabled.rawValue) }
+    }
+
+    static var petCharacter: PetCharacter {
+        get { rawEnum(.petCharacter, default: .clodey) }
+        set {
+            setRawEnum(.petCharacter, newValue)
+            // Side effect: also resets petVariant in UserDefaults when the character changes,
+            // to prevent a stale variant from a different character persisting across sessions.
+            if let raw = defaults.string(forKey: Key.petVariant.rawValue),
+               let variant = PetVariant(rawValue: raw),
+               variant.character != newValue {
+                let corrected = PetVariant.defaultVariant(for: newValue)
+                defaults.set(corrected.rawValue, forKey: Key.petVariant.rawValue)
+            }
+        }
+    }
+
+    static var petVariant: PetVariant {
+        get {
+            guard let raw = defaults.string(forKey: Key.petVariant.rawValue),
+                  let variant = PetVariant(rawValue: raw) else {
+                return PetVariant.defaultVariant(for: petCharacter)
+            }
+            // Return a safe default when stored variant doesn't match the current character.
+            // Storage is healed by the petCharacter setter; no side effect here.
+            if variant.character != petCharacter {
+                return PetVariant.defaultVariant(for: petCharacter)
+            }
+            return variant
+        }
+        set { defaults.set(newValue.rawValue, forKey: Key.petVariant.rawValue) }
+    }
+
+    static var petChattiness: PetChattiness {
+        get { rawEnum(.petChattiness, default: .occasional) }
+        set { setRawEnum(.petChattiness, newValue) }
+    }
+
+    static var petPosition: PetPosition {
+        get { rawEnum(.petPosition, default: .rightOfNotch) }
+        set { setRawEnum(.petPosition, newValue) }
+    }
+
+    static var petSize: PetSize {
+        get { rawEnum(.petSize, default: .small) }
+        set { setRawEnum(.petSize, newValue) }
+    }
+
+    static var petWellnessReminders: Bool {
+        get { defaults.object(forKey: Key.petWellnessReminders.rawValue) as? Bool ?? true }
+        set { defaults.set(newValue, forKey: Key.petWellnessReminders.rawValue) }
+    }
+
+    // MARK: - Notified thresholds (used by NotificationService to track fired notifications)
+    static var notifiedThresholds: [String] {
+        get { defaults.stringArray(forKey: Key.notifiedThresholds.rawValue) ?? [] }
+        set { defaults.set(newValue, forKey: Key.notifiedThresholds.rawValue) }
+    }
+
+    // MARK: - Mini-game
+    static var miniGameHighScore: Int {
+        get { defaults.integer(forKey: Key.miniGameHighScore.rawValue) }
+        set { defaults.set(newValue, forKey: Key.miniGameHighScore.rawValue) }
+    }
+
     // MARK: - Menu bar style
     static var menuBarStyle: MenuBarStyle {
-        get {
-            guard let raw = defaults.string(forKey: Key.menuBarStyle.rawValue),
-                  let style = MenuBarStyle(rawValue: raw) else {
-                return .iconOnly
-            }
-            return style
+        get { rawEnum(.menuBarStyle, default: .iconOnly) }
+        set { setRawEnum(.menuBarStyle, newValue) }
+    }
+
+    // MARK: - Generic enum-backed UserDefaults helpers
+
+    /// Read a RawRepresentable enum from UserDefaults, returning `defaultValue` on miss or parse failure.
+    private static func rawEnum<T: RawRepresentable>(_ key: Key, default defaultValue: T) -> T where T.RawValue == String {
+        guard let raw = defaults.string(forKey: key.rawValue), let value = T(rawValue: raw) else {
+            return defaultValue
         }
-        set { defaults.set(newValue.rawValue, forKey: Key.menuBarStyle.rawValue) }
+        return value
+    }
+
+    /// Write a RawRepresentable enum to UserDefaults.
+    private static func setRawEnum<T: RawRepresentable>(_ key: Key, _ value: T) where T.RawValue == String {
+        defaults.set(value.rawValue, forKey: key.rawValue)
     }
 }
 
-// MARK: - Menu bar display style
-
-enum MenuBarStyle: String, CaseIterable, Identifiable {
-    case iconOnly = "Icon only"
-    case session = "Session %"
-    case weekly = "Weekly %"
-    case sessionAndWeekly = "Session + Weekly"
-    case pace = "Pace (%/h)"
-
-    var id: String { rawValue }
-    var displayName: String { rawValue }
-}
-
-// MARK: - Menu bar icon style
-
-enum MenuBarIcon: String, CaseIterable, Identifiable {
-    case gauge    = "Gauge"
-    case spark    = "Spark"
-    case ring     = "Ring"
-    case pulse    = "Pulse"
-    case battery  = "Battery"
-    case meter    = "Meter"
-
-    var id: String { rawValue }
-    var displayName: String { rawValue }
-}
-
-// MARK: - Appearance mode
-
-enum AppearanceMode: String, CaseIterable, Identifiable {
-    case system = "System"
-    case light = "Light"
-    case dark = "Dark"
-
-    var id: String { rawValue }
-    var displayName: String { rawValue }
-
-    var colorScheme: ColorScheme? {
-        switch self {
-        case .system: return nil
-        case .light: return .light
-        case .dark: return .dark
-        }
-    }
-}
-
-// MARK: - Terminal / IDE app enum
-
-enum TerminalAppCategory: String, CaseIterable, Identifiable {
-    case terminals = "Terminals"
-    case editors = "Editors & IDEs"
-
-    var id: String { rawValue }
-}
-
-enum TerminalApp: String, CaseIterable, Identifiable {
-    // Terminals
-    case terminal = "Terminal"
-    case iterm = "iTerm"
-    case warp = "Warp"
-    case ghostty = "Ghostty"
-    case kitty = "Kitty"
-    case alacritty = "Alacritty"
-    case hyper = "Hyper"
-    // Editors & IDEs
-    case vscode = "VS Code"
-    case cursor = "Cursor"
-    case zed = "Zed"
-    case phpstorm = "PhpStorm"
-    case windsurf = "Windsurf"
-
-    var id: String { rawValue }
-
-    var displayName: String { rawValue }
-
-    var category: TerminalAppCategory {
-        switch self {
-        case .terminal, .iterm, .warp, .ghostty, .kitty, .alacritty, .hyper:
-            return .terminals
-        case .vscode, .cursor, .zed, .phpstorm, .windsurf:
-            return .editors
-        }
-    }
-
-    /// Whether this app has a built-in terminal where we can run `claude`.
-    var isTerminal: Bool { category == .terminals }
-
-    /// The bundle identifier or app name used with `open -a`.
-    private var bundleAppName: String {
-        switch self {
-        case .vscode: return "Visual Studio Code"
-        case .kitty:  return "kitty"
-        default:      return rawValue
-        }
-    }
-
-    /// Returns `true` when `path` contains no characters that could break
-    /// shell or AppleScript embedding (newlines, null bytes, other control chars).
-    private static func validateDirectoryPath(_ path: String) -> Bool {
-        path.unicodeScalars.allSatisfy { scalar in
-            scalar.value >= 0x20 && scalar.value != 0x7F
-        }
-    }
-
-    /// Launch this app, optionally in `directory`, running `claude` for terminals.
-    /// Returns shell commands to execute via `/bin/sh -c`, or `nil` if the
-    /// directory path contains unsafe characters.
-    func shellLaunchCommand(directory: String = "") -> String? {
-        let dir = directory.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard dir.isEmpty || Self.validateDirectoryPath(dir) else { return nil }
-        let safeDir = Self.shellEscape(dir)
-
-        switch self {
-
-        // ── Terminals with native AppleScript support ────────────
-        case .terminal:
-            guard let cmd = Self.claudeCommand(directory: dir) else { return nil }
-            let escaped = Self.appleScriptEscape(cmd)
-            return """
-            osascript -e 'tell application "Terminal"' -e 'activate' -e 'do script "\(escaped)"' -e 'end tell'
-            """
-
-        case .iterm:
-            guard let cmd = Self.claudeCommand(directory: dir) else { return nil }
-            let escaped = Self.appleScriptEscape(cmd)
-            return """
-            osascript -e 'tell application "iTerm"' -e 'activate' -e 'create window with default profile command "\(escaped)"' -e 'end tell'
-            """
-
-        // ── Terminals with CLI support ───────────────────────────
-        case .kitty:
-            var args = "kitty --single-instance"
-            if !dir.isEmpty { args += " -d \(safeDir)" }
-            args += " sh -c claude"
-            return args
-
-        case .alacritty:
-            var args = "alacritty"
-            if !dir.isEmpty { args += " --working-directory \(safeDir)" }
-            args += " -e claude"
-            return args
-
-        case .ghostty:
-            var args = "ghostty"
-            if !dir.isEmpty { args += " --working-directory=\(safeDir)" }
-            args += " -e claude"
-            return args
-
-        case .warp:
-            if dir.isEmpty {
-                return "open -a 'Warp'"
-            }
-            guard let cmd = Self.claudeCommand(directory: dir) else { return nil }
-            let warpEscaped = Self.appleScriptEscape(cmd)
-            return """
-            open -a 'Warp' && sleep 0.5 && osascript -e 'tell application "System Events"' -e 'keystroke "\(warpEscaped)"' -e 'key code 36' -e 'end tell'
-            """
-
-        case .hyper:
-            if dir.isEmpty {
-                return "open -a 'Hyper'"
-            }
-            guard let cmd = Self.claudeCommand(directory: dir) else { return nil }
-            let hyperEscaped = Self.appleScriptEscape(cmd)
-            return """
-            open -a 'Hyper' && sleep 0.5 && osascript -e 'tell application "System Events"' -e 'keystroke "\(hyperEscaped)"' -e 'key code 36' -e 'end tell'
-            """
-
-        // ── Editors & IDEs ───────────────────────────────────────
-        case .vscode, .cursor, .zed, .phpstorm, .windsurf:
-            let app = bundleAppName
-            if dir.isEmpty {
-                return "open -a '\(Self.appleScriptEscape(app))'"
-            }
-            return "open -a '\(Self.appleScriptEscape(app))' \(safeDir)"
-        }
-    }
-
-    /// Build the command string: `cd <dir> && claude` or just `claude`.
-    /// Returns `nil` if the directory path is invalid.
-    private static func claudeCommand(directory: String) -> String? {
-        let dir = directory.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !dir.isEmpty else { return "claude" }
-        guard validateDirectoryPath(dir) else { return nil }
-        return "cd \(shellEscape(dir)) && claude"
-    }
-
-    /// Escape a string for safe embedding in a single-quoted shell argument.
-    private static func shellEscape(_ value: String) -> String {
-        "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
-    }
-
-    /// Escape a string for safe embedding inside an AppleScript double-quoted string.
-    /// Strips control characters and backticks (which have AppleScript evaluation semantics),
-    /// then escapes backslash and double-quote.
-    private static func appleScriptEscape(_ value: String) -> String {
-        let stripped = value.unicodeScalars
-            .filter { $0.value >= 0x20 && $0.value != 0x7F && $0 != "`" }
-            .reduce(into: "") { $0.append(Character($1)) }
-        return stripped
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"")
-    }
-}

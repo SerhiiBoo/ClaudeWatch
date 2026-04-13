@@ -40,3 +40,7 @@ Sources/**/*+Preview.swift
 Sources/**/PreviewDataService.swift
 Makefile.local
 .env
+
+# Claude Code local config (personal, not team-shared)
+CLAUDE.md
+.claude/

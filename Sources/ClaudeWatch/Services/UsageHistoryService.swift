@@ -3,9 +3,6 @@ import os.log
 
 private let logger = Logger(subsystem: "io.github.SerhiiBoo.ClaudeWatch", category: "UsageHistory")
 
-/// Minimum pace (%/h) considered meaningful for ETA calculations.
-let minimumMeaningfulPacePerHour: Double = 0.5
-
 /// Stores periodic usage snapshots for sparkline display and streak tracking.
 /// Data persisted as JSON in Application Support.
 struct UsageSnapshot: Codable, Equatable {
@@ -16,12 +13,15 @@ struct UsageSnapshot: Codable, Equatable {
     let opusUsed: Double?
 }
 
-struct UsageHistoryService {
+enum UsageHistoryService {
     private static let maxSnapshots = 168  // ~7 days at 1/hour
     private static let fileName = "usage_history.json"
 
     /// Serial queue protecting all mutable static state.
     private static let queue = DispatchQueue(label: "io.github.SerhiiBoo.ClaudeWatch.UsageHistoryService")
+
+    private static let decoder = JSONDecoder()
+    private static let encoder = JSONEncoder()
 
     // Lazy one-time directory creation; avoids I/O on every access.
     private static let fileURL: URL? = {
@@ -33,7 +33,13 @@ struct UsageHistoryService {
             return nil
         }
         let dir = base.appendingPathComponent("Claude Watch", isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        do {
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        } catch {
+            logger.error("Failed to create storage directory: \(error.localizedDescription)")
+            LogService.error("UsageHistory", "Failed to create storage directory", error: error)
+            return nil
+        }
         return dir.appendingPathComponent(fileName)
     }()
 
@@ -42,7 +48,12 @@ struct UsageHistoryService {
     private static var cacheTimestamp: Date?
 
     /// Optional history provider. When set, `recent()` returns this instead of reading disk.
-    static var historyOverride: (() -> [UsageSnapshot])? = nil
+    /// Writes must go through `queue` to avoid data races.
+    static var historyOverride: (() -> [UsageSnapshot])? {
+        get { queue.sync { _historyOverride } }
+        set { queue.sync { _historyOverride = newValue } }
+    }
+    private static var _historyOverride: (() -> [UsageSnapshot])? = nil
 
     static func load() -> [UsageSnapshot] {
         queue.sync { loadUnsafe() }
@@ -58,7 +69,7 @@ struct UsageHistoryService {
         }
         guard let fileURL,
               let data = try? Data(contentsOf: fileURL),
-              let snapshots = try? JSONDecoder().decode([UsageSnapshot].self, from: data) else {
+              let snapshots = try? decoder.decode([UsageSnapshot].self, from: data) else {
             return []
         }
         cachedSnapshots = snapshots
@@ -87,7 +98,7 @@ struct UsageHistoryService {
             }
             guard let fileURL else { return }
             do {
-                let data = try JSONEncoder().encode(history)
+                let data = try encoder.encode(history)
                 try data.write(to: fileURL, options: .atomic)
                 // Invalidate cache so next load() picks up the new data
                 cachedSnapshots = history
@@ -101,7 +112,7 @@ struct UsageHistoryService {
 
     /// Returns snapshots from the last N hours (configurable via settings)
     static func recent(hours: Int? = nil) -> [UsageSnapshot] {
-        let overrideFn: (() -> [UsageSnapshot])? = queue.sync { historyOverride }
+        let overrideFn: (() -> [UsageSnapshot])? = queue.sync { _historyOverride }
         if let override = overrideFn { return override() }
         let h = hours ?? AppSettings.sparklineHours
         let cutoff = Date().addingTimeInterval(-Double(h) * 3600)
@@ -181,7 +192,7 @@ struct UsageHistoryService {
         currentRemaining: Double,
         keyPath: KeyPath<UsageSnapshot, Double>
     ) -> Double? {
-        guard let pace = pacePerHour(for: keyPath), pace > minimumMeaningfulPacePerHour else { return nil }
+        guard let pace = pacePerHour(for: keyPath), pace > PaceClassifier.minimumMeaningfulPacePerHour else { return nil }
         return currentRemaining / pace
     }
 
@@ -190,3 +201,5 @@ struct UsageHistoryService {
         estimatedHoursUntilEmpty(currentRemaining: currentRemaining, keyPath: \.sessionUsed)
     }
 }
+
+extension UsageHistoryService: UsageHistoryStoring {}
