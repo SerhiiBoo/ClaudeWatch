@@ -115,12 +115,13 @@ final class NotchPetWindow {
             object: nil,
             queue: .main
         ) { [weak self] notification in
+            let userInfo = notification.userInfo
             Task { @MainActor [weak self] in
                 guard let self else { return }
-                if let movement = notification.userInfo?["movement"] as? String,
+                if let movement = userInfo?["movement"] as? String,
                    let petMovement = PetMovement(rawValue: movement) {
                     self.triggerAnimation(petMovement)
-                } else if let animRaw = notification.userInfo?["animation"] as? String,
+                } else if let animRaw = userInfo?["animation"] as? String,
                           let animation = PetAnimation(rawValue: animRaw) {
                     self.petService.triggerAmbientAnimation(animation)
                 }

@@ -16,8 +16,8 @@
 ---
 
 <p align="center">
-  A lightweight macOS menu bar app that monitors your <a href="https://claude.ai">Claude</a> API usage in real time.<br/>
-  Session limits, weekly quotas, rate limits, and pace — without ever leaving your workflow.
+  A macOS menu bar companion for Claude Code. Tracks session and weekly token usage, detects rate limits,<br/>
+  projects your pace — and in v2, lets a pet live in your notch.
 </p>
 
 <p align="center">
@@ -29,35 +29,35 @@
 
 ---
 
-## Features
+## What's in v2.0
 
 <table>
 <tr>
+<td width="50%">
+
+### Notch Pet
+Bytie, Clodey, Ghosty, or Sprout live in the macOS notch. Their mood shifts with your token usage — happy when you have headroom, wilting (or rebooting) as limits approach. Multiple skins, a chattiness slider, and idle detection so they're quiet when you step away.
+
+### Mini-Game
+Built into the popover. For when you're staring at a rate-limit countdown and need something to do.
+
+### Terminal / IDE Launcher
+One click opens your configured working directory in iTerm2, Warp, Ghostty, VS Code, Cursor, and 8 more apps. Configurable in Settings → Terminal.
+
+### 153 Unit Tests
+API parsing, pace classification, usage history, notifications, and view-model logic — all covered. Protocol-based DI throughout.
+
+</td>
 <td width="50%">
 
 ### Live Menu Bar
 Color-coded status icon with configurable display — session %, weekly %, combined, or pace (%/h). Always one glance away.
 
 ### Usage Breakdown
-Session (5-hour) and weekly (7-day) limits with progress bars, plus model-specific caps for Sonnet and Opus.
-
-### Smart Notifications
-Alerts at configurable thresholds (50%, 80%, 90%…), on limit hit with restoration ETA, and on limit reset.
-
-### Usage Pace
-Tracks your consumption rate (%/hour) and projects whether you're on track to hit limits.
-
-</td>
-<td width="50%">
-
-### Sparkline Charts
-Rolling usage history visualized as mini trend charts — configurable from 6 hours to 7 days.
+Session (5-hour) and weekly (7-day) limits with progress bars, model-specific caps for Sonnet and Opus, and extra (pay-as-you-go) spend tracking.
 
 ### Rate Limit Tracking
 Automatic 429 detection with countdown timer and exponential backoff. Visual banner shows time remaining.
-
-### Quick Actions
-Launch Claude Code, your terminal, or IDE directly from the popover. Supports 12+ apps with custom working directory.
 
 ### Fully Local
 Zero telemetry, zero analytics. Your OAuth token never leaves your machine — read directly from the macOS Keychain.
@@ -65,6 +65,8 @@ Zero telemetry, zero analytics. Your OAuth token never leaves your machine — r
 </td>
 </tr>
 </table>
+
+> **Note on the notch pet:** Renders in the physical notch on MacBook Pro and MacBook Air models with a notch. On external displays or older MacBooks, the pet moves to a menu bar overlay.
 
 ---
 
@@ -107,12 +109,13 @@ Open the popover → gear icon → **Settings**:
 
 | Setting | Options |
 |---|---|
+| **Notch pet** | Enable/disable; choose character (Bytie, Clodey, Ghosty, Sprout); pick variant skin; set chattiness |
 | **Notification thresholds** | Custom usage % levels (e.g. 50%, 80%, 90%) |
 | **Limit alerts** | On limit hit (with reset ETA) and on limit restored |
 | **Sparkline range** | 6h, 12h, 24h, or 7d |
 | **Pace window** | 1h, 2h, or 4h lookback |
 | **Menu bar style** | Icon only / Session % / Weekly % / Session + Weekly / Pace (%/h) |
-| **Quick actions** | Terminal app + working directory |
+| **Terminal launcher** | App picker (iTerm2, Warp, Ghostty, VS Code, Cursor, and more) + working directory |
 | **Compact mode** | Condensed single-column layout |
 | **Launch at Login** | Start automatically with macOS |
 
