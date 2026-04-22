@@ -106,16 +106,18 @@ final class UsageViewModel: ObservableObject {
             let response = try await APIService.fetchUsage(token: creds.accessToken)
             // Check cancellation after each await point — add a guard here if new awaits are inserted above.
             guard !Task.isCancelled else { return }
-            let newUsage = mapResponse(response, plan: planName(creds.subscriptionType))
-            let previousUsage = usage
-            usage = newUsage
-            lastRefreshed = Date()
-            errorMessage = nil      // Clear error only on success
-            rateLimitedUntil = nil  // Clear only on success
-            consecutiveRateLimits = 0
-            // Record snapshot for history/sparkline and check alert thresholds
-            UsageHistoryService.record(newUsage)
-            NotificationService.checkThresholds(usage: newUsage, previousUsage: previousUsage)
+            applySuccessResponse(response, creds: creds)
+        } catch APIError.httpError(let code) where code == 401 || code == 403 {
+            // Token may have rotated — invalidate cache and retry exactly once.
+            KeychainService.invalidateCache()
+            do {
+                let freshCreds = try KeychainService.loadCredentials(forceReload: true)
+                let retryResponse = try await APIService.fetchUsage(token: freshCreds.accessToken)
+                guard !Task.isCancelled else { return }
+                applySuccessResponse(retryResponse, creds: freshCreds)
+            } catch {
+                handleFetchError(error)
+            }
         } catch APIError.rateLimited(let retryAfter) {
             handleRateLimit(retryAfter)
         } catch {
@@ -129,6 +131,18 @@ final class UsageViewModel: ObservableObject {
 
         isLoading = false
         NotificationCenter.default.post(name: .usageDidUpdate, object: nil)
+    }
+
+    private func applySuccessResponse(_ response: UsageAPIResponse, creds: ClaudeCredentials) {
+        let newUsage = mapResponse(response, plan: planName(creds.subscriptionType))
+        let previousUsage = usage
+        usage = newUsage
+        lastRefreshed = Date()
+        errorMessage = nil
+        rateLimitedUntil = nil
+        consecutiveRateLimits = 0
+        UsageHistoryService.record(newUsage)
+        NotificationService.checkThresholds(usage: newUsage, previousUsage: previousUsage)
     }
 
     private func handleRateLimit(_ retryAfter: Date?) {

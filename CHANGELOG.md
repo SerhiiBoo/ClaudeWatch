@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.2] - 2026-04-22
+
+### Fixed
+
+- Keychain re-prompt frequency reduced: credentials are now cached in memory and read from Keychain only once per session (or once per token rotation). Previously every timer tick triggered a `SecItemCopyMatching` call, causing macOS to re-prompt after each `claude` CLI token refresh.
+- When the API returns 401/403 the cached token is invalidated and re-fetched automatically, so recovery from a token rotation requires exactly one keychain prompt instead of none or repeated prompts.
+- Pet overlay window no longer blocks clicks on app tabs, menu-bar items, or notification banners in the 240 pt of empty space around the sprite. The window now passes mouse events through everywhere except a tight rect around the actual sprite — tap-to-poke still works.
+
 ## [2.0.1] - 2026-04-13
 
 ### Fixed

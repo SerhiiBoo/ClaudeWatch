@@ -75,7 +75,7 @@ final class NotchPetWindow {
         w.level = .statusBar
         w.applyFloatingWindowDefaults()
         w.collectionBehavior.formUnion([.stationary, .ignoresCycle])
-        w.ignoresMouseEvents = false
+        w.ignoresMouseEvents = true
         w.isMovableByWindowBackground = false
 
         let hostingView = NSHostingView(
@@ -205,19 +205,33 @@ final class NotchPetWindow {
     private func startMouseTracking() {
         mouseMonitor.map { NSEvent.removeMonitor($0) }
         mouseMonitor = nil
-        // Mouse tracking is only needed to follow the cursor across displays.
-        // On single-display setups, skip the always-on global event tap.
-        guard NSScreen.screens.count > 1 else { return }
         mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: .mouseMoved) { [weak self] _ in
             Task { @MainActor [weak self] in self?.onMouseMoved() }
         }
+        updateIgnoresMouseEvents()
     }
 
     private func onMouseMoved() {
+        updateIgnoresMouseEvents()
+        // Multi-display tracking: throttled to avoid recomputing geometry every event.
+        guard NSScreen.screens.count > 1 else { return }
         let now = Date()
         guard now.timeIntervalSince(lastScreenCheckDate) >= 1.0 else { return }
         lastScreenCheckDate = now
         moveToActiveScreen()
+    }
+
+    private func updateIgnoresMouseEvents() {
+        guard let w = window else { return }
+        let spriteSize = AppSettings.petSize.spriteSize
+        let padding: CGFloat = 4
+        let spriteRect = NSRect(
+            x: w.frame.origin.x + (w.frame.width - spriteSize) / 2 - padding,
+            y: w.frame.origin.y + w.frame.height - spriteSize - padding,
+            width: spriteSize + padding * 2,
+            height: spriteSize + padding * 2
+        )
+        w.ignoresMouseEvents = !spriteRect.contains(NSEvent.mouseLocation)
     }
 
     private func moveToActiveScreen() {

@@ -26,7 +26,31 @@ enum KeychainError: LocalizedError {
 enum KeychainService {
     private static let serviceName = "Claude Code-credentials"
 
+    // All callers are @MainActor; safe to access without additional synchronisation.
+    nonisolated(unsafe) private static var cachedCredentials: ClaudeCredentials?
+
+    /// Returns cached credentials, reading from Keychain only when the cache is empty.
     static func loadCredentials() throws -> ClaudeCredentials {
+        if let cached = cachedCredentials { return cached }
+        let fresh = try loadFromKeychain()
+        cachedCredentials = fresh
+        return fresh
+    }
+
+    /// Forces a fresh Keychain read regardless of cache state.
+    static func loadCredentials(forceReload: Bool) throws -> ClaudeCredentials {
+        if !forceReload, let cached = cachedCredentials { return cached }
+        let fresh = try loadFromKeychain()
+        cachedCredentials = fresh
+        return fresh
+    }
+
+    /// Clears the in-memory cache so the next `loadCredentials()` reads from Keychain.
+    static func invalidateCache() {
+        cachedCredentials = nil
+    }
+
+    private static func loadFromKeychain() throws -> ClaudeCredentials {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: serviceName,
