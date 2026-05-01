@@ -12,34 +12,32 @@ extension PopoverView {
         let ringColor: Color = pressure.color
 
         return HStack(spacing: 12) {
-            if showCircularTimers {
-                ZStack {
-                    Circle()
-                        .stroke(.primary.opacity(0.06), lineWidth: 5)
-                    Circle()
-                        .trim(from: 0, to: min(1, (100 - usage.sessionRemaining) / 100))
-                        .stroke(
-                            ringColor.opacity(0.85),
-                            style: StrokeStyle(lineWidth: 5, lineCap: .round)
-                        )
-                        .rotationEffect(.degrees(-90))
-                        .shadow(color: ringColor.opacity(0.3), radius: 4)
-                    VStack(spacing: 0) {
-                        if pressure == .beyondWindow {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(.green)
-                        } else if let h = hours {
-                            Text(etaText(h))
-                                .font(.system(size: 16, weight: .bold, design: .rounded))
-                            Text("left")
-                                .font(.system(size: 9))
-                                .foregroundStyle(.secondary)
-                        }
+            ZStack {
+                Circle()
+                    .stroke(.primary.opacity(0.06), lineWidth: 5)
+                Circle()
+                    .trim(from: 0, to: min(1, (100 - usage.sessionRemaining) / 100))
+                    .stroke(
+                        ringColor.opacity(0.85),
+                        style: StrokeStyle(lineWidth: 5, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(-90))
+                    .shadow(color: ringColor.opacity(0.3), radius: 4)
+                VStack(spacing: 0) {
+                    if pressure == .beyondWindow {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(.green)
+                    } else if let h = hours {
+                        Text(etaText(h))
+                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                        Text("left")
+                            .font(.system(size: 9))
+                            .foregroundStyle(.secondary)
                     }
                 }
-                .frame(width: 58, height: 58)
             }
+            .frame(width: 58, height: 58)
 
             VStack(alignment: .leading, spacing: 3) {
                 if pressure == .beyondWindow {

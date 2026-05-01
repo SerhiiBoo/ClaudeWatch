@@ -5,7 +5,7 @@ extension SettingsView {
     // MARK: - Diagnostics
 
     var diagnosticsSection: some View {
-        settingsSection("Diagnostics", subtitle: "Error logs for troubleshooting. Logs auto-rotate at 500 KB.") {
+        settingsSection("Diagnostics", systemImage: "wrench.and.screwdriver.fill", subtitle: "Error logs for troubleshooting. Logs auto-rotate at 500 KB.") {
             HStack(spacing: 8) {
                 Button {
                     copyLogsToClipboard()

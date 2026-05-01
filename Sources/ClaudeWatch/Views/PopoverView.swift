@@ -4,10 +4,10 @@ struct PopoverView: View {
     @EnvironmentObject var viewModel: UsageViewModel
     @State var showSettings = false
     @AppStorage(AppSettings.appearanceModeKey) private var appearanceModeRaw: String = AppearanceMode.system.rawValue
-    @AppStorage("compactMode") var compactMode: Bool = false
     @AppStorage("showCircularTimers") var showCircularTimers: Bool = true
     @AppStorage("showSparkline") var showSparkline: Bool = true
     @AppStorage("showQuickActions") var showQuickActions: Bool = true
+    @AppStorage(AppSettings.showExtraUsageKey) var showExtraUsage: Bool = true
 
     var body: some View {
         let sessionPace   = UsageHistoryService.sessionPacePerHour()
@@ -23,7 +23,7 @@ struct PopoverView: View {
         return Group {
             if showSettings {
                 SettingsView(onDismiss: { showSettings = false })
-                    .frame(width: UI.Size.popoverWidth)
+                    .frame(width: UI.Size.settingsWidth)
             } else {
                 VStack(spacing: 0) {
                     headerRow(sessionPace: sessionPace)
@@ -101,11 +101,7 @@ struct PopoverView: View {
                     staleBadge
                 }
 
-                if compactMode {
-                    compactContent(usage: usage, sessionPace: sessionPace, paceStatus: paceStatus)
-                } else {
-                    fullContent(usage: usage, sessionPace: sessionPace, recentHistory: recentHistory, paceStatus: paceStatus)
-                }
+                fullContent(usage: usage, sessionPace: sessionPace, recentHistory: recentHistory, paceStatus: paceStatus)
             }
             .opacity(isStaleData ? 0.6 : 1.0)
 

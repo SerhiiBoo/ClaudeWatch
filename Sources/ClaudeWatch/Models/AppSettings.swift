@@ -10,6 +10,7 @@ struct AppSettings {
 
     static let defaultNotificationThresholds: [Double] = [50, 80, 90]
     static let appearanceModeKey = Key.appearanceMode.rawValue
+    static let showExtraUsageKey = Key.showExtraUsage.rawValue
     static let appVersion: String = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
     static let defaultRefreshInterval: TimeInterval = 120
     /// Seconds of user inactivity after which periodic timer fetches are skipped.
@@ -27,9 +28,10 @@ struct AppSettings {
         case showCircularTimers
         case showSparkline
         case showQuickActions
+        case showExtraUsage
         case terminalApp
         case terminalWorkingDirectory
-        case compactMode
+
         case menuBarStyle
         case menuBarIcon
         case globalHotkeyEnabled
@@ -107,6 +109,11 @@ struct AppSettings {
         set { defaults.set(newValue, forKey: Key.showQuickActions.rawValue) }
     }
 
+    static var showExtraUsage: Bool {
+        get { defaults.object(forKey: Key.showExtraUsage.rawValue) as? Bool ?? true }
+        set { defaults.set(newValue, forKey: Key.showExtraUsage.rawValue) }
+    }
+
     // MARK: - Terminal app
     static var terminalApp: TerminalApp {
         get { rawEnum(.terminalApp, default: .terminal) }
@@ -117,12 +124,6 @@ struct AppSettings {
     static var terminalWorkingDirectory: String {
         get { defaults.string(forKey: Key.terminalWorkingDirectory.rawValue) ?? "" }
         set { defaults.set(newValue, forKey: Key.terminalWorkingDirectory.rawValue) }
-    }
-
-    // MARK: - Compact mode
-    static var compactMode: Bool {
-        get { defaults.object(forKey: Key.compactMode.rawValue) as? Bool ?? false }
-        set { defaults.set(newValue, forKey: Key.compactMode.rawValue) }
     }
 
     // MARK: - Menu bar icon

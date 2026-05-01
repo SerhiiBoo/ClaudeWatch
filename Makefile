@@ -28,6 +28,8 @@ bundle: build
 	@cp "$(RELEASE)"            "$(BUNDLE)/Contents/MacOS/$(APP)"
 	@cp Resources/Info.plist  "$(BUNDLE)/Contents/"
 	@cp Resources/AppIcon.icns "$(BUNDLE)/Contents/Resources/"
+	@# SwiftPM resource bundle (contains cw-hook.sh and other bundled resources)
+	@cp -r ".build/release/ClaudeWatch_ClaudeWatch.bundle" "$(BUNDLE)/Contents/Resources/"
 	@# Ad-hoc code signature (required to run on macOS 13+)
 	@codesign --force --deep --sign - "$(BUNDLE)"
 	@echo "✓ $(BUNDLE) ready"

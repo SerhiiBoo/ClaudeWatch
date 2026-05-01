@@ -5,11 +5,11 @@ extension SettingsView {
     // MARK: - General
 
     var generalSection: some View {
-        settingsSection("General", subtitle: "App behavior, refresh frequency, and display density.") {
-            settingsRow("Launch at Login") {
+        settingsSection("General", systemImage: "slider.horizontal.3", subtitle: "App behavior, refresh frequency, and display density.") {
+            settingsRow("Launch at Login", systemImage: "power") {
                 Toggle("", isOn: $settings.loginItemEnabled)
                     .toggleStyle(.switch)
-                    .controlSize(.mini)
+                    .controlSize(.small)
                     .labelsHidden()
                     .accessibilityLabel("Launch at login")
                     .onChange(of: settings.loginItemEnabled) { _, v in setLoginItem(enabled: v) }
@@ -17,7 +17,7 @@ extension SettingsView {
             if let err = settings.loginItemError {
                 Text(err).font(.caption2).foregroundStyle(.red)
             }
-            settingsRow("Auto-refresh") {
+            settingsRow("Auto-refresh", systemImage: "arrow.clockwise") {
                 Picker("", selection: $viewModel.refreshInterval) {
                     Text("2m").tag(120.0 as TimeInterval)
                     Text("3m").tag(180.0 as TimeInterval)
@@ -26,18 +26,11 @@ extension SettingsView {
                 }
                 .pickerStyle(.menu)
                 .labelsHidden()
+                .controlSize(.regular)
                 .accessibilityLabel("Auto-refresh interval")
                 .fixedSize()
             }
-            settingsRow("Compact mode") {
-                Toggle("", isOn: $settings.compactMode)
-                    .toggleStyle(.switch)
-                    .controlSize(.mini)
-                    .labelsHidden()
-                    .accessibilityLabel("Compact mode")
-                    .onChange(of: settings.compactMode) { _, v in AppSettings.compactMode = v }
-            }
-            settingsRow("Appearance") {
+            settingsRow("Appearance", systemImage: "circle.lefthalf.filled") {
                 Picker("", selection: $appearanceModeRaw) {
                     ForEach(AppearanceMode.allCases) { mode in
                         Text(mode.displayName).tag(mode.rawValue)
@@ -45,10 +38,11 @@ extension SettingsView {
                 }
                 .pickerStyle(.menu)
                 .labelsHidden()
+                .controlSize(.regular)
                 .accessibilityLabel("Appearance mode")
                 .fixedSize()
             }
-            settingsRow("Menu bar") {
+            settingsRow("Menu bar", systemImage: "menubar.rectangle") {
                 Picker("", selection: $settings.menuBarStyle) {
                     ForEach(MenuBarStyle.allCases) { style in
                         Text(style.displayName).tag(style)
@@ -56,6 +50,7 @@ extension SettingsView {
                 }
                 .pickerStyle(.menu)
                 .labelsHidden()
+                .controlSize(.regular)
                 .accessibilityLabel("Menu bar style")
                 .fixedSize()
                 .onChange(of: settings.menuBarStyle) { _, v in
@@ -71,24 +66,25 @@ extension SettingsView {
         VStack(alignment: .leading, spacing: 6) {
             Text("Menu bar icon")
                 .font(.caption)
+                .foregroundStyle(.secondary)
             HStack(spacing: 6) {
                 ForEach(MenuBarIcon.allCases) { icon in
                     Button { settings.menuBarIcon = icon } label: {
                         VStack(spacing: 3) {
                             Image(nsImage: MenuBarIconRenderer.render(style: icon, fraction: iconPickerPreviewFraction))
-                                .frame(width: 18, height: 18)
+                                .frame(width: 22, height: 22)
                             Text(icon.displayName)
-                                .font(.system(size: 8))
+                                .font(.system(size: 10))
                                 .foregroundStyle(.secondary)
                         }
-                        .padding(4)
+                        .padding(6)
                         .background(
                             RoundedRectangle(cornerRadius: 6)
                                 .fill(settings.menuBarIcon == icon ? Color.accentColor.opacity(0.15) : Color.clear)
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 6)
-                                .stroke(settings.menuBarIcon == icon ? Color.accentColor : Color.clear, lineWidth: 1)
+                                .stroke(settings.menuBarIcon == icon ? Color.accentColor : Color.clear, lineWidth: 2)
                         )
                     }
                     .buttonStyle(.plain)

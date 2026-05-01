@@ -5,8 +5,8 @@ extension SettingsView {
     // MARK: - Terminal / IDE
 
     var terminalSection: some View {
-        settingsSection("Terminal / IDE", subtitle: "Which app to launch when you tap the quick action button. Requires Automation permission on first use.") {
-            settingsRow("Open in") {
+        settingsSection("Terminal / IDE", systemImage: "apple.terminal", subtitle: "Which app to launch when you tap the quick action button. Requires Automation permission on first use.") {
+            settingsRow("Open in", systemImage: "terminal.fill") {
                 Picker("", selection: $settings.terminalApp) {
                     ForEach(TerminalAppCategory.allCases) { cat in
                         Section(cat.rawValue) {
@@ -18,6 +18,7 @@ extension SettingsView {
                 }
                 .pickerStyle(.menu)
                 .labelsHidden()
+                .controlSize(.regular)
                 .accessibilityLabel("Open in terminal app")
                 .fixedSize()
                 .onChange(of: settings.terminalApp) { _, v in AppSettings.terminalApp = v }

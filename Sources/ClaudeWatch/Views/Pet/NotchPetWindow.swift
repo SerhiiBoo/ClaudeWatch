@@ -72,7 +72,8 @@ final class NotchPetWindow {
         w.isOpaque = false
         w.backgroundColor = .clear
         w.hasShadow = false
-        w.level = .statusBar
+        // Stay above NSPopover (level 101) so the pet is never covered by the settings panel.
+        w.level = NSWindow.Level(rawValue: NSWindow.Level.popUpMenu.rawValue + 1)
         w.applyFloatingWindowDefaults()
         w.collectionBehavior.formUnion([.stationary, .ignoresCycle])
         w.ignoresMouseEvents = true
@@ -86,10 +87,10 @@ final class NotchPetWindow {
                                    height: PetWindowTuning.contentHeight)
         w.contentView = hostingView
 
+        window = w
         recomputeGeometry()
         snapToHome(w)
         w.orderFront(nil)
-        window = w
 
         // Reposition when screens change
         observers.add(NotificationCenter.default.addObserver(

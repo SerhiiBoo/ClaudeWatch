@@ -5,11 +5,11 @@ extension SettingsView {
     // MARK: - Hotkeys
 
     var hotkeysSection: some View {
-        settingsSection("Hotkeys", subtitle: "Global keyboard shortcut to show or hide the ClaudeWatch popover from anywhere.") {
-            settingsRow("Enable hotkey") {
+        settingsSection("Hotkeys", systemImage: "keyboard", subtitle: "Global keyboard shortcut to show or hide the ClaudeWatch popover from anywhere.") {
+            settingsRow("Enable hotkey", systemImage: "command") {
                 Toggle("", isOn: $settings.globalHotkeyEnabled)
                     .toggleStyle(.switch)
-                    .controlSize(.mini)
+                    .controlSize(.small)
                     .labelsHidden()
                     .accessibilityLabel("Enable global hotkey")
                     .onChange(of: settings.globalHotkeyEnabled) { _, v in

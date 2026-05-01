@@ -2,50 +2,7 @@ import SwiftUI
 
 extension PopoverView {
 
-    // MARK: - Usage sections stack (compact and full variants)
-
-    func compactContent(usage: UsageData, sessionPace: Double?, paceStatus: PaceStatus) -> some View {
-        VStack(spacing: 0) {
-            if paceStatus.pressure != .unknown {
-                sessionEstimateRow(usage: usage, paceStatus: paceStatus)
-                Divider()
-            }
-
-            UsageSectionView(
-                title: "Session",
-                subtitle: "5-hour window",
-                remaining: usage.sessionRemaining,
-                resetsAt: usage.sessionResetsAt
-            )
-            Divider()
-            UsageSectionView(
-                title: "Weekly",
-                subtitle: "7-day window",
-                remaining: usage.weeklyRemaining,
-                resetsAt: usage.weeklyResetsAt
-            )
-            if let sr = usage.sonnetRemaining, let sra = usage.sonnetResetsAt {
-                Divider()
-                UsageSectionView(title: "Sonnet", subtitle: "7-day window", remaining: sr, resetsAt: sra)
-            }
-            if let or = usage.opusRemaining, let ora = usage.opusResetsAt {
-                Divider()
-                UsageSectionView(title: "Opus", subtitle: "7-day window", remaining: or, resetsAt: ora)
-            }
-            if let extra = usage.extraUsage, shouldShowExtraUsage(extra) {
-                Divider()
-                ExtraUsageSectionView(data: extra)
-            }
-
-            // Projected usage during rate limit
-            if viewModel.rateLimitedUntil != nil {
-                projectedUsageRow(usage: usage, sessionPace: sessionPace)
-            }
-
-            Divider()
-            planRow(usage: usage)
-        }
-    }
+    // MARK: - Usage sections stack
 
     func fullContent(
         usage: UsageData,
@@ -54,8 +11,8 @@ extension PopoverView {
         paceStatus: PaceStatus
     ) -> some View {
         VStack(spacing: 0) {
-            // Session estimate (always shown when pace data is available)
-            if paceStatus.pressure != .unknown {
+            // Session estimate (shown when pace data is available and toggle is on)
+            if showCircularTimers && paceStatus.pressure != .unknown {
                 sessionEstimateRow(usage: usage, paceStatus: paceStatus)
                 Divider()
             }
@@ -82,7 +39,7 @@ extension PopoverView {
                 Divider()
                 UsageSectionView(title: "Opus", subtitle: "7-day window", remaining: or, resetsAt: ora)
             }
-            if let extra = usage.extraUsage, shouldShowExtraUsage(extra) {
+            if showExtraUsage, let extra = usage.extraUsage, shouldShowExtraUsage(extra) {
                 Divider()
                 ExtraUsageSectionView(data: extra)
             }

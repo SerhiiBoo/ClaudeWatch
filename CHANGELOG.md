@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-05-02
+
+### Added
+
+- Settings panel redesigned with tabbed navigation: General, Pet, Shortcuts, Alerts, Advanced — replaces single long-scroll layout
+- Toggle to show or hide the Extra Usage section (pay-as-you-go spend) in Visible Sections settings
+- Section and row icons throughout settings using accent-colored SF Symbol badges
+
+### Changed
+
+- Settings panel width increased from 320 pt to 360 pt to accommodate tabbed layout
+- Pet character and variant pickers now use `FlowLayout` so items wrap instead of overflow; sprite previews enlarged to 30×30
+- Notification threshold chips redesigned with color dot, larger hit target, and clearer remove button; preset buttons switched to `.bordered` style
+- Control sizes standardized — toggles use `.small`, pickers and buttons use `.regular`
+- Notch pet window level raised above popover so the pet is never obscured by the settings panel
+- Session estimate ring visibility now controlled by the existing "Session limit estimate" toggle
+
+### Removed
+
+- Compact mode setting — full-content layout is now the only display mode
+
 ## [2.0.2] - 2026-04-22
 
 ### Fixed

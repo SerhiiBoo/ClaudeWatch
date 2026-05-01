@@ -15,7 +15,7 @@ extension SettingsView {
             settingsRow("Usage alerts") {
                 Toggle("", isOn: $settings.notificationsEnabled)
                     .toggleStyle(.switch)
-                    .controlSize(.mini)
+                    .controlSize(.small)
                     .labelsHidden()
                     .accessibilityLabel("Usage alerts")
                     .onChange(of: settings.notificationsEnabled) { _, v in AppSettings.notificationsEnabled = v }
@@ -45,18 +45,17 @@ extension SettingsView {
                             .controlSize(.small)
                             .disabled(settings.newThresholdText.isEmpty)
                     }
-                    HStack(spacing: 4) {
+                    HStack(spacing: 6) {
                         Text("Presets:")
-                            .font(.system(size: 9))
+                            .font(.caption2)
                             .foregroundStyle(.tertiary)
                         ForEach(Self.thresholdPresets, id: \.label) { preset in
                             Button(preset.label) {
                                 settings.thresholds = preset.values
                                 persistThresholds()
                             }
-                            .font(.system(size: 9))
-                            .buttonStyle(.plain)
-                            .foregroundStyle(.blue)
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
                         }
                     }
                     Button {
@@ -99,25 +98,29 @@ extension SettingsView {
 
     func thresholdChip(_ value: Double) -> some View {
         let color = chipColor(value)
-        return HStack(spacing: 3) {
+        return HStack(spacing: 5) {
+            Circle()
+                .fill(color)
+                .frame(width: 6, height: 6)
             Text("\(Int(value))%")
-                .font(.caption2)
-                .fontWeight(.medium)
+                .font(.caption)
+                .fontWeight(.semibold)
             Button {
                 removeThreshold(value)
             } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 7, weight: .bold))
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.tertiary)
             }
             .buttonStyle(.plain)
-            .frame(minWidth: 28, minHeight: 28)
             .accessibilityLabel("Remove \(Int(value))% threshold")
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 3)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 4)
         .background(color.opacity(0.12))
         .foregroundStyle(color)
         .clipShape(Capsule())
+        .overlay(Capsule().strokeBorder(color.opacity(0.35), lineWidth: 0.5))
     }
 
     func chipColor(_ threshold: Double) -> Color {

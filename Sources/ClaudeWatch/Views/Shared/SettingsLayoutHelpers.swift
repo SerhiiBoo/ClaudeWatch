@@ -3,13 +3,28 @@ import SwiftUI
 /// Shared layout helpers used across SettingsView and its extensions.
 extension SettingsView {
 
+    func accentIconBadge(systemImage: String, badgeSize: CGFloat, fontSize: CGFloat) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: badgeSize * 0.28)
+                .fill(Color.accentColor.opacity(0.12))
+                .frame(width: badgeSize, height: badgeSize)
+            Image(systemName: systemImage)
+                .font(.system(size: fontSize, weight: .semibold))
+                .foregroundStyle(Color.accentColor)
+        }
+    }
+
     func settingsSection<Content: View>(
         _ title: String,
+        systemImage: String? = nil,
         subtitle: String? = nil,
         @ViewBuilder content: () -> Content
     ) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 0) {
+            HStack(spacing: 6) {
+                if let systemImage {
+                    accentIconBadge(systemImage: systemImage, badgeSize: 18, fontSize: 9)
+                }
                 Text(title.uppercased())
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(.secondary)
@@ -22,10 +37,10 @@ extension SettingsView {
                     .foregroundStyle(.tertiary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 12) {
                 content()
             }
-            .padding(12)
+            .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background {
                 RoundedRectangle(cornerRadius: 10)
@@ -46,10 +61,20 @@ extension SettingsView {
         }
     }
 
-    func settingsRow<Trailing: View>(_ label: String, @ViewBuilder trailing: () -> Trailing) -> some View {
+    func settingsRow<Trailing: View>(
+        _ label: String,
+        systemImage: String? = nil,
+        @ViewBuilder trailing: () -> Trailing
+    ) -> some View {
         HStack {
+            if let systemImage {
+                Image(systemName: systemImage)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .frame(width: UI.Size.settingsRowIconWidth, alignment: .center)
+            }
             Text(label)
-                .font(.system(.caption, weight: .medium))
+                .font(.system(.callout, weight: .medium))
             Spacer()
             trailing()
         }

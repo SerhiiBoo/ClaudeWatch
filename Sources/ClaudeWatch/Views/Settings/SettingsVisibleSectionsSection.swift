@@ -5,30 +5,38 @@ extension SettingsView {
     // MARK: - Visible Sections
 
     var visibleSectionsSection: some View {
-        settingsSection("Visible Sections", subtitle: "Show or hide individual widget sections.") {
-            settingsRow("Session limit estimate") {
+        settingsSection("Visible Sections", systemImage: "eye", subtitle: "Show or hide individual widget sections.") {
+            settingsRow("Session limit estimate", systemImage: "gauge.with.dots.needle.50percent") {
                 Toggle("", isOn: $settings.showCircularTimers)
                     .toggleStyle(.switch)
-                    .controlSize(.mini)
+                    .controlSize(.small)
                     .labelsHidden()
                     .accessibilityLabel("Session limit estimate")
                     .onChange(of: settings.showCircularTimers) { _, v in AppSettings.showCircularTimers = v }
             }
-            settingsRow("Sparkline charts") {
+            settingsRow("Sparkline charts", systemImage: "chart.xyaxis.line") {
                 Toggle("", isOn: $settings.showSparkline)
                     .toggleStyle(.switch)
-                    .controlSize(.mini)
+                    .controlSize(.small)
                     .labelsHidden()
                     .accessibilityLabel("Sparkline charts")
                     .onChange(of: settings.showSparkline) { _, v in AppSettings.showSparkline = v }
             }
-            settingsRow("Quick actions") {
+            settingsRow("Quick actions", systemImage: "bolt.fill") {
                 Toggle("", isOn: $settings.showQuickActions)
                     .toggleStyle(.switch)
-                    .controlSize(.mini)
+                    .controlSize(.small)
                     .labelsHidden()
                     .accessibilityLabel("Quick actions")
                     .onChange(of: settings.showQuickActions) { _, v in AppSettings.showQuickActions = v }
+            }
+            settingsRow("Extra usage", systemImage: "chart.bar.fill") {
+                Toggle("", isOn: $settings.showExtraUsage)
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+                    .labelsHidden()
+                    .accessibilityLabel("Extra usage")
+                    .onChange(of: settings.showExtraUsage) { _, v in AppSettings.showExtraUsage = v }
             }
         }
     }
@@ -36,7 +44,7 @@ extension SettingsView {
     // MARK: - Charts & Pace
 
     var chartsPaceSection: some View {
-        settingsSection("Charts & Pace", subtitle: "How much history to show in charts and how far back to calculate your usage rate. Data is only collected while the app is running.") {
+        settingsSection("Charts & Pace", systemImage: "waveform.path.ecg", subtitle: "How much history to show in charts and how far back to calculate your usage rate. Data is only collected while the app is running.") {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Sparkline window")
                     .font(.caption)

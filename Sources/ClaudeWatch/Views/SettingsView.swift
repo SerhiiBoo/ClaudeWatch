@@ -1,6 +1,31 @@
 import SwiftUI
 import ServiceManagement
 
+enum SettingsTab: String, CaseIterable, Identifiable {
+    case general, pet, shortcuts, notifications, advanced
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .general:       return "General"
+        case .pet:           return "Pet"
+        case .shortcuts:     return "Shortcuts"
+        case .notifications: return "Alerts"
+        case .advanced:      return "Advanced"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .general:       return "slider.horizontal.3"
+        case .pet:           return "pawprint.fill"
+        case .shortcuts:     return "keyboard"
+        case .notifications: return "bell.fill"
+        case .advanced:      return "wrench.and.screwdriver.fill"
+        }
+    }
+}
+
 struct SettingsView: View {
     @EnvironmentObject var viewModel: UsageViewModel
     @EnvironmentObject var petService: NotchPetService
@@ -16,31 +41,42 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 0) {
             titleBar
             Divider()
+            tabBar
+            Divider()
+            errorBanner
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    generalSection
-                    petSection
-                    hotkeysSection
-                    visibleSectionsSection
-                    chartsPaceSection
-                    notificationsSection
-                    terminalSection
-                    diagnosticsSection
-                    credentialsNote
-                    errorBanner
+                VStack(alignment: .leading, spacing: 18) {
+                    switch settings.selectedTab {
+                    case .general:
+                        generalSection
+                        visibleSectionsSection
+                        chartsPaceSection
+                    case .pet:
+                        petSection
+                    case .shortcuts:
+                        hotkeysSection
+                        terminalSection
+                    case .notifications:
+                        notificationsSection
+                    case .advanced:
+                        diagnosticsSection
+                        credentialsNote
+                    }
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 14)
             }
-            .frame(maxHeight: 500)
+            .id(settings.selectedTab)
+            .frame(height: 460)
             Divider()
             footerActions
         }
-        .frame(width: 300)
-        .frame(minHeight: 500)
         .onChange(of: settings.menuBarIcon) { _, v in
             AppSettings.menuBarIcon = v
             NotificationCenter.default.post(name: .usageDidUpdate, object: nil)
+        }
+        .onAppear {
+            NotificationCenter.default.post(name: .petPositionDidChange, object: nil)
         }
         .onDisappear {
             clearTask?.cancel()
@@ -50,10 +86,8 @@ struct SettingsView: View {
     // MARK: - Title & Footer
 
     private var titleBar: some View {
-        HStack {
-            Image(systemName: "gearshape.fill")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+        HStack(spacing: 10) {
+            accentIconBadge(systemImage: "gearshape.fill", badgeSize: 28, fontSize: 14)
             Text("Settings")
                 .font(.headline)
             Spacer()
@@ -70,6 +104,42 @@ struct SettingsView: View {
         .background(.ultraThinMaterial)
     }
 
+    @Namespace private var tabNamespace
+
+    private var tabBar: some View {
+        HStack(spacing: 0) {
+            ForEach(SettingsTab.allCases) { tab in
+                let selected = settings.selectedTab == tab
+                Button { withAnimation(.easeInOut(duration: 0.18)) { settings.selectedTab = tab } } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: tab.systemImage)
+                            .font(.system(size: 16, weight: selected ? .semibold : .regular))
+                        Text(tab.title)
+                            .font(.system(size: 10, weight: selected ? .semibold : .regular))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 9)
+                    .foregroundStyle(selected ? Color.accentColor : Color.secondary)
+                    .background {
+                        if selected {
+                            Capsule()
+                                .fill(Color.accentColor.opacity(0.10))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 4)
+                                .matchedGeometryEffect(id: "tabPill", in: tabNamespace)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help(tab.title)
+                if tab != SettingsTab.allCases.last {
+                    Divider().frame(height: 20)
+                }
+            }
+        }
+    }
+
     private var footerActions: some View {
         HStack {
             Button {
@@ -79,7 +149,7 @@ struct SettingsView: View {
                 Label("Refresh Now", systemImage: "arrow.clockwise")
             }
             .buttonStyle(.borderedProminent)
-            .controlSize(.small)
+            .controlSize(.regular)
 
             Button(role: .destructive) {
                 NSApp.terminate(nil)
@@ -87,13 +157,13 @@ struct SettingsView: View {
                 Label("Quit", systemImage: "power")
             }
             .buttonStyle(.bordered)
-            .controlSize(.small)
+            .controlSize(.regular)
 
             Spacer()
 
             Text("v\(appVersion)")
-                .font(.caption2)
-                .foregroundStyle(.quaternary)
+                .font(.caption)
+                .foregroundStyle(.tertiary)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -122,6 +192,10 @@ struct SettingsView: View {
                 .font(.caption)
                 .foregroundStyle(.red)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.red.opacity(0.08))
         }
     }
 
@@ -147,6 +221,9 @@ struct SettingsView: View {
 // MARK: - SettingsState
 
 struct SettingsState {
+    // Tab
+    var selectedTab: SettingsTab = .general
+
     // Login item
     var loginItemEnabled: Bool = (SMAppService.mainApp.status == .enabled)
     var loginItemError: String?
@@ -164,13 +241,13 @@ struct SettingsState {
     var showCircularTimers: Bool = AppSettings.showCircularTimers
     var showSparkline: Bool = AppSettings.showSparkline
     var showQuickActions: Bool = AppSettings.showQuickActions
+    var showExtraUsage: Bool = AppSettings.showExtraUsage
 
     // Terminal
     var terminalApp: TerminalApp = AppSettings.terminalApp
     var terminalWorkingDirectory: String = AppSettings.terminalWorkingDirectory
 
     // Display
-    var compactMode: Bool = AppSettings.compactMode
     var menuBarStyle: MenuBarStyle = AppSettings.menuBarStyle
     var menuBarIcon: MenuBarIcon = AppSettings.menuBarIcon
 
