@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.2] - 2026-05-07
+
+### Fixed
+
+- Allow/Deny buttons on permission approval cards now send the correct decision — tapping a button no longer also triggers the card's tap-to-activate handler, which was consuming the continuation with `.none` before the button action could deliver the real decision
+
 ## [2.2.1] - 2026-05-07
 
 ### Fixed

@@ -50,6 +50,8 @@ struct NotificationCardView: View {
             .padding(.horizontal, 12)
             .padding(.top, 10)
             .padding(.bottom, onAllow != nil ? 6 : 8)
+            .contentShape(Rectangle())
+            .onTapGesture { onActivate() }
 
             if let onAllow, let onDeny {
                 HStack(spacing: 8) {
@@ -87,7 +89,6 @@ struct NotificationCardView: View {
         .onHover { hovering in
             if hovering { viewModel.pause() } else { viewModel.resume() }
         }
-        .onTapGesture { onActivate() }
         .onAppear { viewModel.startTimer() }
         .onDisappear { viewModel.stopTimer() }
     }
