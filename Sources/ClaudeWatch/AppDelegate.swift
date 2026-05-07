@@ -1,5 +1,7 @@
 import AppKit
+import Combine
 import SwiftUI
+import UserNotifications
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -14,11 +16,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var petWindow: NotchPetWindow?
     private var miniGameWindow: MiniGameWindow?
     private var miniGameObservers: [Any] = []
+    private var menuBarSettingsObserver: Any?
     private var activityMonitor: SystemActivityMonitor?
+    private var hookIngestion: HookIngestionService?
+    private var hookNotificationCenter: NotificationCenterService?
+    private var permissionRequestService: PermissionRequestService?
+    private var notificationStackWindow: NotificationStackWindow?
+    private var hookEventsSubscription: AnyCancellable?
+    private var permissionApprovalObserver: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        let runningInstances = NSRunningApplication.runningApplications(
+            withBundleIdentifier: Bundle.main.bundleIdentifier ?? ""
+        )
+        if runningInstances.count > 1 {
+            NSApp.terminate(nil)
+            return
+        }
+
         NSApp.setActivationPolicy(.accessory)
         LogService.pruneIfNeeded()
+        UNUserNotificationCenter.current().delegate = self
         NotificationService.setup()
         setupStatusItem()
         setupPopover()
@@ -27,6 +45,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         setupActivityMonitor()
         viewModel.startAutoRefresh()
         setupMiniGame()
+        setupHookNotifications()
         // Keep status bar icon in sync
         usageObserver = NotificationCenter.default.addObserver(
             forName: .usageDidUpdate,
@@ -34,6 +53,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor [weak self] in self?.updateStatusBar() }
+        }
+        // Settings-triggered changes update immediately even with popover open
+        menuBarSettingsObserver = NotificationCenter.default.addObserver(
+            forName: .menuBarSettingsDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.updateStatusBarForSettingsChange() }
         }
     }
 
@@ -47,15 +74,81 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let observer = usageObserver {
             NotificationCenter.default.removeObserver(observer)
         }
+        if let observer = menuBarSettingsObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
         miniGameObservers.forEach { NotificationCenter.default.removeObserver($0) }
+        if let observer = permissionApprovalObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        hookEventsSubscription?.cancel()
+        permissionRequestService?.stopListening()
         miniGameWindow?.close()
         petWindow?.hide()
+        notificationStackWindow?.hide()
         activityMonitor?.invalidate()
         activityMonitor = nil
         LogService.flush()
     }
 
     // MARK: - Setup
+
+    private func setupHookNotifications() {
+        let nc = NotificationCenterService()
+        let reachability = TerminalReachabilityService()
+        let ingestion = HookIngestionService(notificationCenter: nc, reachability: reachability)
+        let permService = PermissionRequestService(reachability: reachability)
+        let stackWindow = NotificationStackWindow(service: nc, permissionService: permService)
+        hookNotificationCenter = nc
+        hookIngestion = ingestion
+        permissionRequestService = permService
+        notificationStackWindow = stackWindow
+        stackWindow.show()
+
+        if AppSettings.permissionApprovalEnabled && AppSettings.hookNotificationsEnabled {
+            permService.startListening()
+        }
+
+        hookEventsSubscription = Publishers.CombineLatest(
+            nc.$visibleEvents.map { !$0.isEmpty },
+            permService.$visibleRequests.map { !$0.isEmpty }
+        )
+        .map { $0 || $1 }
+        .removeDuplicates()
+        .sink { [weak self] hasVisible in
+            guard let self else { return }
+            if hasVisible {
+                self.petService.beginSustainedAnimation(.excited)
+            } else {
+                self.petService.endSustainedAnimation()
+            }
+        }
+
+        permissionApprovalObserver = NotificationCenter.default.addObserver(
+            forName: .permissionApprovalSettingDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self, let permService = self.permissionRequestService else { return }
+                if AppSettings.permissionApprovalEnabled && AppSettings.hookNotificationsEnabled {
+                    permService.startListening()
+                } else {
+                    permService.stopListening()
+                    if !AppSettings.hookNotificationsEnabled {
+                        self.hookNotificationCenter?.dismissAll()
+                    }
+                }
+                try? HookInstaller.shared.updatePermissionApprovalEntry(enabled: AppSettings.permissionApprovalEnabled && AppSettings.hookNotificationsEnabled)
+            }
+        }
+    }
+
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls {
+            hookIngestion?.ingest(url: url)
+        }
+    }
 
     private func setupActivityMonitor() {
         activityMonitor = SystemActivityMonitor(
@@ -184,6 +277,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Status bar
 
+    private func updateStatusBarForSettingsChange() {
+        guard let button = statusItem?.button else { return }
+        let remaining = viewModel.usage.map { u -> Double in
+            let base = min(u.sessionRemaining, u.weeklyRemaining)
+            let extras = [u.sonnetRemaining, u.opusRemaining].compactMap { $0 }
+            return extras.reduce(base) { min($0, $1) }
+        }
+        button.image = statusIcon(remaining: remaining)
+        button.title = menuBarTitle()
+    }
+
     private func updateStatusBar() {
         guard let button = statusItem?.button else { return }
         let remaining = viewModel.usage.map { u -> Double in
@@ -224,6 +328,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func statusIcon(remaining: Double?) -> NSImage? {
         let fraction = (remaining ?? 100.0) / 100.0
         return MenuBarIconRenderer.render(style: AppSettings.menuBarIcon, fraction: fraction)
+    }
+}
+
+// MARK: - UNUserNotificationCenterDelegate
+
+extension AppDelegate: UNUserNotificationCenterDelegate {
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        guard let idString = response.notification.request.content.userInfo["request_id"] as? String,
+              let id = UUID(uuidString: idString) else { completionHandler(); return }
+        let decision: PermissionDecision
+        switch response.actionIdentifier {
+        case PermissionActionIdentifier.allow: decision = .allow
+        case PermissionActionIdentifier.deny:  decision = .deny
+        default:                               decision = .none
+        }
+        let userInfo = response.notification.request.content.userInfo
+        let bundleId = userInfo["bundle_id"] as? String
+        let pid = (userInfo["pid"] as? Int).map { pid_t($0) }
+        Task { @MainActor [weak self] in
+            guard let self else { completionHandler(); return }
+            self.permissionRequestService?.resolve(id: id, decision: decision)
+            if decision == .none {
+                try? await Task.sleep(for: .milliseconds(200))
+                _ = TerminalLauncher.activate(bundleId: bundleId) || TerminalLauncher.activate(pid: pid)
+            }
+            completionHandler()
+        }
     }
 }
 

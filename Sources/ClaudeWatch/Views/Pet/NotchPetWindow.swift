@@ -348,7 +348,8 @@ final class NotchPetWindow {
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 guard self.petService.isEnabled else { return }
-                guard !self.petService.showSpeechBubble else {
+                guard !self.petService.showSpeechBubble,
+                      self.petService.sustainedAnimation == nil else {
                     self.scheduleNextMovement()
                     return
                 }

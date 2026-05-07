@@ -10,6 +10,8 @@ extension Notification.Name {
     // Mini-game triggers
     static let petDidLeaveSleep    = Notification.Name("io.github.SerhiiBoo.ClaudeWatch.petDidLeaveSleep")
     static let miniGameManualTrigger = Notification.Name("io.github.SerhiiBoo.ClaudeWatch.miniGameManualTrigger")
+    static let menuBarSettingsDidChange = Notification.Name("io.github.SerhiiBoo.ClaudeWatch.menuBarSettingsDidChange")
+    static let permissionApprovalSettingDidChange = Notification.Name("io.github.SerhiiBoo.ClaudeWatch.permissionApprovalSettingDidChange")
 }
 
 // MARK: - Domain model

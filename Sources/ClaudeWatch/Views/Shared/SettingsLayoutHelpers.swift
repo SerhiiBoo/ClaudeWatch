@@ -18,6 +18,7 @@ extension SettingsView {
         _ title: String,
         systemImage: String? = nil,
         subtitle: String? = nil,
+        badge: String? = nil,
         @ViewBuilder content: () -> Content
     ) -> some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -29,6 +30,14 @@ extension SettingsView {
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(.secondary)
                     .tracking(0.8)
+                if let badge {
+                    Text(badge.uppercased())
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Color.orange))
+                }
                 Spacer()
             }
             if let subtitle {

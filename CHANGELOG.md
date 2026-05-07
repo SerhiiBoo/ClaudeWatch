@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-05-07
+
+### Added
+
+- [Beta] Claude Code Hooks integration: ClaudeWatch now receives hook events (Notification, Stop, PreToolUse) from Claude Code and displays floating notification cards (stacked, up to 3 visible) when Claude needs attention or finishes work
+- Permission approval cards: when Claude requests a tool call and the terminal isn't visible, a card with Allow/Deny buttons appears; auto-resolves after a configurable timeout (5–120 s). Respects existing allow/deny rules in `~/.claude/settings.json` and Claude's runtime permission mode — only surfaces cards for calls that genuinely need human input
+- Delivery style picker in Hooks settings — choose between floating popover cards or native macOS notifications
+- Permission approval toggle and timeout slider in Hooks settings
+- Settings panel now lists which hooks are installed to `~/.claude/settings.json` and notes that existing settings are preserved on both install and uninstall
+- Duplicate-instance guard: launching a second ClaudeWatch process exits immediately
+- Pet plays a sustained excited animation while hook notification cards or permission cards are visible; returns to mood-driven animation once all are dismissed
+
 ## [2.1.0] - 2026-05-02
 
 ### Added

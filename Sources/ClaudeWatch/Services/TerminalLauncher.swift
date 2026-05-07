@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 /// Launches terminal apps and editors with an optional working directory.
@@ -44,6 +45,46 @@ enum TerminalLauncher {
                 )
             }
         }
+    }
+
+    // MARK: - Hook notification activation
+
+    /// Resolves a running GUI app by bundleId first, then pid. Returns nil if neither matches.
+    static func resolveApp(bundleId: String?, pid: pid_t?) -> NSRunningApplication? {
+        if let bundleId, !bundleId.isEmpty,
+           let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId).first {
+            return app
+        }
+        if let pid, pid > 0 {
+            return NSRunningApplication(processIdentifier: pid)
+        }
+        return nil
+    }
+
+    /// Activates the app with the given PID. Returns true on success.
+    @discardableResult
+    static func activate(pid: pid_t?) -> Bool {
+        guard let pid, pid > 0 else { return false }
+        guard let app = NSRunningApplication(processIdentifier: pid) else { return false }
+        return performActivation(app, context: "pid:\(pid)")
+    }
+
+    /// Activates the frontmost instance of the app with the given bundle ID. Returns true on success.
+    @discardableResult
+    static func activate(bundleId: String?) -> Bool {
+        guard let bundleId, !bundleId.isEmpty else { return false }
+        guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId).first else { return false }
+        return performActivation(app, context: bundleId)
+    }
+
+    @discardableResult
+    private static func performActivation(_ app: NSRunningApplication, context: String) -> Bool {
+        NSApp.deactivate()
+        let ok = app.activate(options: [.activateAllWindows])
+        if !ok {
+            LogService.log(.warning, category: "TerminalLauncher", "activate returned false", details: ["context": context])
+        }
+        return ok
     }
 
     // MARK: - Shell command building
