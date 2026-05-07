@@ -15,6 +15,16 @@ private struct UsageWindow {
 /// when limits are reached (100%), and when windows reset.
 enum NotificationService {
     static func setup() {
+        let allow = UNNotificationAction(identifier: PermissionActionIdentifier.allow, title: "Allow", options: [])
+        let deny  = UNNotificationAction(identifier: PermissionActionIdentifier.deny,  title: "Deny",  options: .destructive)
+        let category = UNNotificationCategory(
+            identifier: "permission_request",
+            actions: [allow, deny],
+            intentIdentifiers: [],
+            options: []
+        )
+        UNUserNotificationCenter.current().setNotificationCategories([category])
+
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
             if let error {
                 LogService.error("Notifications", "Authorization failed", error: error)

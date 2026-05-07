@@ -34,6 +34,7 @@ final class NotchPetService: ObservableObject {
 
     @Published var mood: PetMood = .happy
     @Published var animation: PetAnimation = .idle
+    private(set) var sustainedAnimation: PetAnimation? = nil
     @Published var currentPhrase: String? = nil
     @Published var showSpeechBubble = false
     @Published var character: PetCharacter = AppSettings.petCharacter
@@ -175,7 +176,9 @@ final class NotchPetService: ObservableObject {
         if newMood != mood {
             let oldMood = mood
             mood = newMood
-            animation = animationForMood(newMood)
+            if sustainedAnimation == nil {
+                animation = animationForMood(newMood)
+            }
             showMoodPhrase(for: newMood)
             NotificationCenter.default.post(name: .petMoodDidChange, object: nil)
             logger.info("Pet mood: \(oldMood.rawValue) -> \(newMood.rawValue)")
@@ -247,7 +250,7 @@ final class NotchPetService: ObservableObject {
     }
 
     private func displayPhrase(_ phrase: String) {
-        guard isEnabled else { return }
+        guard isEnabled, sustainedAnimation == nil else { return }
         bubbleDismissTask?.cancel()
         speechAnimationID += 1
         let myID = speechAnimationID
@@ -289,6 +292,7 @@ final class NotchPetService: ObservableObject {
     /// Directly fires an ambient one-shot animation, bypassing the calm-mood guard.
     /// Use for programmatic triggers (e.g. preview mode buttons).
     func triggerAmbientAnimation(_ animation: PetAnimation) {
+        guard sustainedAnimation == nil else { return }
         idleAnimationReturnTask?.cancel()
         ambientAnimationID += 1
         let myID = ambientAnimationID
@@ -299,6 +303,22 @@ final class NotchPetService: ObservableObject {
             guard let self, !Task.isCancelled, self.ambientAnimationID == myID else { return }
             self.animation = self.animationForMood(self.mood)
         }
+    }
+
+    func beginSustainedAnimation(_ anim: PetAnimation) {
+        sustainedAnimation = anim
+        idleAnimationReturnTask?.cancel()
+        bubbleDismissTask?.cancel()
+        ambientAnimationID += 1
+        showSpeechBubble = false
+        currentPhrase = nil
+        animation = anim
+    }
+
+    func endSustainedAnimation() {
+        guard sustainedAnimation != nil else { return }
+        sustainedAnimation = nil
+        animation = animationForMood(mood)
     }
 
     private func scheduleIdleAnimationTimer() {

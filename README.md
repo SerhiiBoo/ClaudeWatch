@@ -29,23 +29,25 @@
 
 ---
 
-## What's in v2.0
+## What's in v2.2
 
 <table>
 <tr>
 <td width="50%">
 
+### Claude Code Hooks *(new in v2.2)*
+ClaudeWatch connects to Claude Code's hook system and pops up notification cards when Claude needs your input or finishes work — right on your screen, without switching to the terminal. Cards stack (up to 3), auto-dismiss, and clicking one brings the terminal or editor straight to the front.
+
+Choose between **floating popover cards** (default) or **native macOS notifications** in Settings → Claude Code Hooks.
+
+### Permission Approval Cards *(new in v2.2)*
+When Claude requests a tool call and your terminal isn't visible, ClaudeWatch shows a card with **Allow** and **Deny** buttons so you can respond without switching windows. Auto-resolves after a configurable timeout (5–120 s). Respects existing allow/deny rules in `~/.claude/settings.json` and Claude's runtime permission mode — only surfaces cards for calls that genuinely need input.
+
 ### Notch Pet
-Bytie, Clodey, Ghosty, or Sprout live in the macOS notch. Their mood shifts with your token usage — happy when you have headroom, wilting (or rebooting) as limits approach. Multiple skins, a chattiness slider, and idle detection so they're quiet when you step away.
+Bytie, Clodey, Ghosty, or Sprout live in the macOS notch. Their mood shifts with your token usage — and they play an excited animation while hook cards or permission cards are visible.
 
 ### Mini-Game
 Built into the popover. For when you're staring at a rate-limit countdown and need something to do.
-
-### Terminal / IDE Launcher
-One click opens your configured working directory in iTerm2, Warp, Ghostty, VS Code, Cursor, and 8 more apps. Configurable in Settings → Terminal.
-
-### 153 Unit Tests
-API parsing, pace classification, usage history, notifications, and view-model logic — all covered. Protocol-based DI throughout.
 
 </td>
 <td width="50%">
@@ -61,6 +63,9 @@ Automatic 429 detection with countdown timer and exponential backoff. Visual ban
 
 ### Fully Local
 Zero telemetry, zero analytics. Your OAuth token never leaves your machine — read directly from the macOS Keychain.
+
+### Terminal / IDE Launcher
+One click opens your configured working directory in iTerm2, Warp, Ghostty, VS Code, Cursor, and 8 more apps. Configurable in Settings → Terminal.
 
 </td>
 </tr>
@@ -112,11 +117,11 @@ Open the popover → gear icon → **Settings**:
 | **Notch pet** | Enable/disable; choose character (Bytie, Clodey, Ghosty, Sprout); pick variant skin; set chattiness |
 | **Notification thresholds** | Custom usage % levels (e.g. 50%, 80%, 90%) |
 | **Limit alerts** | On limit hit (with reset ETA) and on limit restored |
+| **Claude Code Hooks** | Enable hook notifications; choose delivery style (popover cards or native macOS); toggle notification/stop events; set card timeout; enable permission approval with configurable timeout |
 | **Sparkline range** | 6h, 12h, 24h, or 7d |
 | **Pace window** | 1h, 2h, or 4h lookback |
 | **Menu bar style** | Icon only / Session % / Weekly % / Session + Weekly / Pace (%/h) |
 | **Terminal launcher** | App picker (iTerm2, Warp, Ghostty, VS Code, Cursor, and more) + working directory |
-| **Compact mode** | Condensed single-column layout |
 | **Launch at Login** | Start automatically with macOS |
 
 ---

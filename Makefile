@@ -28,8 +28,10 @@ bundle: build
 	@cp "$(RELEASE)"            "$(BUNDLE)/Contents/MacOS/$(APP)"
 	@cp Resources/Info.plist  "$(BUNDLE)/Contents/"
 	@cp Resources/AppIcon.icns "$(BUNDLE)/Contents/Resources/"
-	@# SwiftPM resource bundle (contains cw-hook.sh and other bundled resources)
+	@# SwiftPM resource bundle (contains claudewatch-hook.sh and other bundled resources)
 	@cp -r ".build/release/ClaudeWatch_ClaudeWatch.bundle" "$(BUNDLE)/Contents/Resources/"
+	@# Ensure hook script is executable after bundle copy
+	@find "$(BUNDLE)/Contents/Resources" -name "claudewatch-hook.sh" -exec chmod 755 {} \;
 	@# Ad-hoc code signature (required to run on macOS 13+)
 	@codesign --force --deep --sign - "$(BUNDLE)"
 	@echo "✓ $(BUNDLE) ready"

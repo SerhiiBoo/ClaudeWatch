@@ -58,6 +58,7 @@ struct SettingsView: View {
                         terminalSection
                     case .notifications:
                         notificationsSection
+                        hookNotificationsSection
                     case .advanced:
                         diagnosticsSection
                         credentialsNote
@@ -73,7 +74,7 @@ struct SettingsView: View {
         }
         .onChange(of: settings.menuBarIcon) { _, v in
             AppSettings.menuBarIcon = v
-            NotificationCenter.default.post(name: .usageDidUpdate, object: nil)
+            NotificationCenter.default.post(name: .menuBarSettingsDidChange, object: nil)
         }
         .onAppear {
             NotificationCenter.default.post(name: .petPositionDidChange, object: nil)
@@ -264,6 +265,19 @@ struct SettingsState {
     var petPosition: PetPosition = AppSettings.petPosition
     var petSize: PetSize = AppSettings.petSize
     var petWellnessReminders: Bool = AppSettings.petWellnessReminders
+
+    // Hook notifications
+    var hookNotificationsEnabled: Bool = AppSettings.hookNotificationsEnabled
+    var hookDeliveryStyle: HookDeliveryStyle = AppSettings.hookDeliveryStyle
+    var hookNotificationEventEnabled: Bool = AppSettings.hookNotificationEventEnabled
+    var hookStopEventEnabled: Bool = AppSettings.hookStopEventEnabled
+    var hookNotificationTimeout: Double = AppSettings.hookNotificationTimeout
+    var hookStopTimeout: Double = AppSettings.hookStopTimeout
+    var hookSoundEnabled: Bool = AppSettings.hookSoundEnabled
+
+    // Permission approval
+    var permissionApprovalEnabled: Bool = AppSettings.permissionApprovalEnabled
+    var permissionApprovalTimeout: Double = Double(AppSettings.permissionApprovalTimeoutSeconds)
 
     // Diagnostics
     var logsCopiedMessage: String?

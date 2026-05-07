@@ -55,7 +55,7 @@ extension SettingsView {
                 .fixedSize()
                 .onChange(of: settings.menuBarStyle) { _, v in
                     AppSettings.menuBarStyle = v
-                    NotificationCenter.default.post(name: .usageDidUpdate, object: nil)
+                    NotificationCenter.default.post(name: .menuBarSettingsDidChange, object: nil)
                 }
             }
             iconPicker

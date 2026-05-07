@@ -71,6 +71,145 @@ extension SettingsView {
         }
     }
 
+    // MARK: - Hook Notifications
+
+    var hookNotificationsSection: some View {
+        settingsSection("Claude Code Hooks", subtitle: "Notifications when Claude Code needs your attention or finishes work.", badge: "Beta") {
+            settingsRow("Enable hook notifications") {
+                Toggle("", isOn: $settings.hookNotificationsEnabled)
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+                    .labelsHidden()
+                    .accessibilityLabel("Enable hook notifications")
+                    .onChange(of: settings.hookNotificationsEnabled) { _, v in
+                        AppSettings.hookNotificationsEnabled = v
+                        if v { try? HookInstaller.shared.install() }
+                        else { try? HookInstaller.shared.uninstall() }
+                        NotificationCenter.default.post(name: .permissionApprovalSettingDidChange, object: nil)
+                    }
+            }
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Writes to ~/.claude/settings.json:")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Text("• Notification, Stop hooks (always when enabled)")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Text("• PreToolUse hook, matcher Bash|mcp__.* (when Permission approval is on)")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Text("Existing settings are preserved on both install and uninstall.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(.leading, 2)
+            if settings.hookNotificationsEnabled {
+                settingsRow("Style") {
+                    Picker("", selection: $settings.hookDeliveryStyle) {
+                        ForEach(HookDeliveryStyle.allCases, id: \.self) { style in
+                            Text(style.label).tag(style)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 220)
+                    .labelsHidden()
+                    .onChange(of: settings.hookDeliveryStyle) { _, v in AppSettings.hookDeliveryStyle = v }
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    settingsRow("Notification events") {
+                        Toggle("", isOn: $settings.hookNotificationEventEnabled)
+                            .toggleStyle(.switch)
+                            .controlSize(.small)
+                            .labelsHidden()
+                            .accessibilityLabel("Notification events")
+                            .onChange(of: settings.hookNotificationEventEnabled) { _, v in AppSettings.hookNotificationEventEnabled = v }
+                    }
+                    Text("Claude Code pauses and waits for your input")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    if settings.hookNotificationEventEnabled && settings.hookDeliveryStyle == .popover {
+                        settingsRow("Timeout") {
+                            HStack(spacing: 8) {
+                                Slider(value: $settings.hookNotificationTimeout, in: 5...60, step: 1)
+                                    .frame(width: 120)
+                                    .onChange(of: settings.hookNotificationTimeout) { _, v in AppSettings.hookNotificationTimeout = v }
+                                Text("\(Int(settings.hookNotificationTimeout))s")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 28, alignment: .leading)
+                            }
+                        }
+                    }
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    settingsRow("Stop events") {
+                        Toggle("", isOn: $settings.hookStopEventEnabled)
+                            .toggleStyle(.switch)
+                            .controlSize(.small)
+                            .labelsHidden()
+                            .accessibilityLabel("Stop events")
+                            .onChange(of: settings.hookStopEventEnabled) { _, v in AppSettings.hookStopEventEnabled = v }
+                    }
+                    Text("Claude Code finishes a task")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    if settings.hookStopEventEnabled && settings.hookDeliveryStyle == .popover {
+                        settingsRow("Timeout") {
+                            HStack(spacing: 8) {
+                                Slider(value: $settings.hookStopTimeout, in: 3...30, step: 1)
+                                    .frame(width: 120)
+                                    .onChange(of: settings.hookStopTimeout) { _, v in AppSettings.hookStopTimeout = v }
+                                Text("\(Int(settings.hookStopTimeout))s")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 28, alignment: .leading)
+                            }
+                        }
+                    }
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    settingsRow("Permission approval") {
+                        Toggle("", isOn: $settings.permissionApprovalEnabled)
+                            .toggleStyle(.switch)
+                            .controlSize(.small)
+                            .labelsHidden()
+                            .accessibilityLabel("Permission approval")
+                            .onChange(of: settings.permissionApprovalEnabled) { _, v in
+                                AppSettings.permissionApprovalEnabled = v
+                                NotificationCenter.default.post(name: .permissionApprovalSettingDidChange, object: nil)
+                            }
+                    }
+                    Text("Show Allow/Deny prompt when terminal isn't visible")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    if settings.permissionApprovalEnabled && settings.hookDeliveryStyle == .popover {
+                        settingsRow("Timeout") {
+                            HStack(spacing: 8) {
+                                Slider(value: $settings.permissionApprovalTimeout, in: 5...120, step: 5)
+                                    .frame(width: 120)
+                                    .onChange(of: settings.permissionApprovalTimeout) { _, v in
+                                        AppSettings.permissionApprovalTimeoutSeconds = Int(v)
+                                    }
+                                Text("\(Int(settings.permissionApprovalTimeout))s")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 32, alignment: .leading)
+                            }
+                        }
+                    }
+                }
+                settingsRow("Sound") {
+                    Toggle("", isOn: $settings.hookSoundEnabled)
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
+                        .labelsHidden()
+                        .accessibilityLabel("Sound")
+                        .onChange(of: settings.hookSoundEnabled) { _, v in AppSettings.hookSoundEnabled = v }
+                }
+            }
+        }
+    }
+
     // MARK: - Threshold helpers
 
     func addThreshold() {

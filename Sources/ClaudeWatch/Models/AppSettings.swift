@@ -47,6 +47,19 @@ struct AppSettings {
         case petWellnessReminders
         case miniGameHighScore
         case notifiedThresholds
+
+        // Hook notifications
+        case hookNotificationsEnabled
+        case hookDeliveryStyle
+        case hookNotificationEventEnabled
+        case hookStopEventEnabled
+        case hookNotificationTimeout
+        case hookStopTimeout
+        case hookSoundEnabled
+
+        // Permission approval
+        case permissionApprovalEnabled
+        case permissionApprovalTimeoutSeconds
     }
 
     // MARK: - Appearance
@@ -234,6 +247,64 @@ struct AppSettings {
     static var miniGameHighScore: Int {
         get { defaults.integer(forKey: Key.miniGameHighScore.rawValue) }
         set { defaults.set(newValue, forKey: Key.miniGameHighScore.rawValue) }
+    }
+
+    // MARK: - Hook notifications
+
+    static var hookNotificationsEnabled: Bool {
+        get { defaults.object(forKey: Key.hookNotificationsEnabled.rawValue) as? Bool ?? false }
+        set { defaults.set(newValue, forKey: Key.hookNotificationsEnabled.rawValue) }
+    }
+
+    static var hookDeliveryStyle: HookDeliveryStyle {
+        get { rawEnum(.hookDeliveryStyle, default: .popover) }
+        set { setRawEnum(.hookDeliveryStyle, newValue) }
+    }
+
+    static var hookNotificationEventEnabled: Bool {
+        get { defaults.object(forKey: Key.hookNotificationEventEnabled.rawValue) as? Bool ?? true }
+        set { defaults.set(newValue, forKey: Key.hookNotificationEventEnabled.rawValue) }
+    }
+
+    static var hookStopEventEnabled: Bool {
+        get { defaults.object(forKey: Key.hookStopEventEnabled.rawValue) as? Bool ?? true }
+        set { defaults.set(newValue, forKey: Key.hookStopEventEnabled.rawValue) }
+    }
+
+    static var hookNotificationTimeout: TimeInterval {
+        get {
+            let v = defaults.double(forKey: Key.hookNotificationTimeout.rawValue)
+            return v >= 5 ? v : 15
+        }
+        set { defaults.set(newValue, forKey: Key.hookNotificationTimeout.rawValue) }
+    }
+
+    static var hookStopTimeout: TimeInterval {
+        get {
+            let v = defaults.double(forKey: Key.hookStopTimeout.rawValue)
+            return v >= 3 ? v : 8
+        }
+        set { defaults.set(newValue, forKey: Key.hookStopTimeout.rawValue) }
+    }
+
+    static var hookSoundEnabled: Bool {
+        get { defaults.object(forKey: Key.hookSoundEnabled.rawValue) as? Bool ?? true }
+        set { defaults.set(newValue, forKey: Key.hookSoundEnabled.rawValue) }
+    }
+
+    // MARK: - Permission approval
+
+    static var permissionApprovalEnabled: Bool {
+        get { defaults.object(forKey: Key.permissionApprovalEnabled.rawValue) as? Bool ?? true }
+        set { defaults.set(newValue, forKey: Key.permissionApprovalEnabled.rawValue) }
+    }
+
+    static var permissionApprovalTimeoutSeconds: Int {
+        get {
+            let v = defaults.integer(forKey: Key.permissionApprovalTimeoutSeconds.rawValue)
+            return v >= 5 ? v : 30
+        }
+        set { defaults.set(newValue, forKey: Key.permissionApprovalTimeoutSeconds.rawValue) }
     }
 
     // MARK: - Menu bar style
