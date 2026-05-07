@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.1] - 2026-05-07
+
+### Fixed
+
+- Swift concurrency error in `NotificationStackView` — added `@MainActor` to `viewModelFor(_:)` to resolve "call to main actor-isolated initializer in a synchronous nonisolated context" build error
+
 ## [2.2.0] - 2026-05-07
 
 ### Added

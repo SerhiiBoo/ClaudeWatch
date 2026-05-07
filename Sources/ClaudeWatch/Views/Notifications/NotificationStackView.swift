@@ -39,7 +39,7 @@ struct NotificationStackView: View {
         }
     }
 
-    private func viewModelFor(_ item: NotificationCardItem) -> NotificationCardViewModel {
+    @MainActor private func viewModelFor(_ item: NotificationCardItem) -> NotificationCardViewModel {
         if let existing = viewModels[item.id] { return existing }
         let vm = NotificationCardViewModel(item: item)
         viewModels[item.id] = vm
